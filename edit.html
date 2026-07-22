@@ -3,135 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚽ 坤哥的进球记录簿 · 编辑</title>
+    <title>⚽ 坤哥的进球记录簿</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
         :root {
             --yellow: #f5b700; --yellow-dark: #c79100; --black: #1a1a1a;
             --gray: #f4f4f4; --white: #ffffff; --text: #1a1a1a;
-            --border: #e0e0e0; --radius: 14px; --radius-sm: 8px;
+            --border: #e0e0e0; --radius: 16px; --radius-sm: 10px;
             --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
         }
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family: var(--font); background: var(--gray); color: var(--text); min-height:100vh; }
-        .header {
-            background: var(--black); color: var(--white); padding: 16px 20px;
-            position: sticky; top:0; z-index:100; display:flex; align-items:center; justify-content:space-between;
-            flex-wrap:wrap; gap:10px; box-shadow:0 2px 10px rgba(0,0,0,0.2);
+        .hero {
+            background: linear-gradient(135deg, #000 0%, #222 100%); color: var(--yellow);
+            text-align:center; padding:32px 20px 28px; position:relative; overflow:hidden;
         }
-        .logo { font-size:1.4em; font-weight:700; display:flex; align-items:center; gap:8px; }
-        .btn {
-            padding:9px 18px; border:none; border-radius:25px; cursor:pointer; font-size:0.9em;
-            font-weight:600; font-family:var(--font); transition:0.2s; display:inline-flex; align-items:center; gap:5px;
+        .hero::after {
+            content:''; position:absolute; bottom:-20px; left:0; right:0; height:40px;
+            background:var(--gray); border-radius:50% 50% 0 0;
         }
-        .btn-yellow { background: var(--yellow); color: var(--black); }
-        .btn-outline { background: transparent; color: var(--white); border:1.5px solid rgba(255,255,255,0.5); }
-        .btn-outline:hover { background: rgba(255,255,255,0.1); }
-        .btn-add { background: var(--yellow); color: var(--black); border-radius:20px; padding:8px 16px; font-size:0.85em; }
-        .btn-danger { background: #d32f2f; color: #fff; padding:6px 12px; font-size:0.8em; border-radius:20px; }
-        .main-container { max-width:900px; margin:0 auto; padding:20px 16px 40px; }
+        .hero .trophy { font-size:3.2em; display:block; animation: bounce 2s infinite; }
+        @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
+        .hero h1 { font-size:1.8em; font-weight:800; position:relative; z-index:1; }
+        .hero .sub { font-size:0.9em; opacity:0.9; position:relative; z-index:1; }
+        .container { max-width:700px; margin:0 auto; padding:8px 16px 40px; }
+        .stats-bar { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:18px; }
+        .stat-item {
+            background: var(--white); border-radius:25px; padding:10px 18px;
+            box-shadow:0 2px 8px rgba(0,0,0,0.05); font-weight:700; font-size:0.85em;
+            border:1px solid var(--yellow);
+        }
         .match-card {
-            background: var(--white); border-radius: var(--radius); padding:18px 20px;
-            margin-bottom:14px; box-shadow:0 2px 8px rgba(0,0,0,0.05); border:1px solid var(--border);
-            cursor:pointer; transition:0.2s; position:relative; border-left:5px solid transparent;
+            background: var(--white); border-radius: var(--radius); padding:20px 18px; margin-bottom:16px;
+            box-shadow:0 2px 12px rgba(0,0,0,0.06); border:1px solid var(--border); border-left:6px solid var(--yellow);
+            cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
         }
-        .match-card:hover { box-shadow:0 4px 16px rgba(0,0,0,0.1); border-left-color: var(--yellow); }
-        .match-card.active { border-left-color: var(--yellow); background: #fffcf0; }
-        .match-teams { font-weight:700; font-size:1.15em; }
-        .match-score { font-weight:900; font-size:1.5em; color: var(--black); }
-        .delete-match-btn {
-            position:absolute; top:12px; right:14px; background:#fff; border:1px solid #ddd;
-            color:#c0392b; width:30px; height:30px; border-radius:50%; cursor:pointer; opacity:0;
-            display:flex; align-items:center; justify-content:center; transition:0.2s;
+        .match-card:hover {
+            transform: translateY(-2px);
+            box-shadow:0 6px 18px rgba(0,0,0,0.1);
         }
-        .match-card:hover .delete-match-btn { opacity:1; }
-        .edit-panel {
+        .match-date { font-size:0.8em; color:#777; background:#f9f9f9; padding:4px 12px; border-radius:14px; }
+        .teams-row { display:flex; align-items:center; justify-content:center; gap:12px; margin:10px 0; flex-wrap:wrap; }
+        .team-name { font-weight:700; font-size:1.1em; max-width:140px; word-break:break-word; }
+        .score-display { font-weight:900; font-size:2.6em; color: var(--black); letter-spacing:2px; }
+        .goal-dot { display:inline-flex; align-items:center; gap:5px; background:#fafafa; padding:5px 10px; border-radius:16px; margin:3px 5px; font-size:0.82em; border:1px solid #eee; }
+        .dot { width:10px; height:10px; border-radius:50%; }
+        .dot-A { background: #d32f2f; } .dot-B { background: #1976d2; }
+        .match-img { max-width:100%; max-height:200px; border-radius:10px; margin:8px 0; display:block; }
+        .footer {
+            text-align:center; padding:30px 20px; color: #555; font-size:0.9em;
+            border-top:1px solid var(--border); margin-top:20px;
+            font-weight:500; letter-spacing:0.5px;
+        }
+        .footer span { color: var(--yellow-dark); font-weight:700; }
+
+        /* 详情模态框 */
+        .modal-overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center;
+            z-index:1000; visibility:hidden; opacity:0; transition:0.3s;
+        }
+        .modal-overlay.active { visibility:visible; opacity:1; }
+        .modal-content {
             background: var(--white); border-radius: var(--radius); padding:24px 20px;
-            box-shadow:0 4px 20px rgba(0,0,0,0.08); border:1px solid var(--border); margin-top:20px; display:none;
+            max-width:500px; width:90%; max-height:85vh; overflow-y:auto;
+            box-shadow:0 12px 40px rgba(0,0,0,0.3); position:relative;
         }
-        .edit-panel.visible { display:block; }
-        .form-row { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
-        .form-group { flex:1; min-width:120px; }
-        .form-group label { font-size:0.8em; font-weight:700; color:#555; display:block; margin-bottom:4px; }
-        .form-group input, .form-group textarea {
-            width:100%; padding:10px 14px; border:1.5px solid var(--border); border-radius:var(--radius-sm);
-            font-family:var(--font); background:#fafafa;
+        .modal-close {
+            position:absolute; top:10px; right:14px; background:none; border:none;
+            font-size:1.6em; cursor:pointer; color:#999; transition:0.2s;
         }
-        .form-group textarea { resize:vertical; min-height:60px; }
-        .score-input { width:70px !important; text-align:center; font-size:1.3em !important; font-weight:700 !important; }
-        .goals-section { margin-top:16px; padding-top:16px; border-top:1px dashed var(--border); }
-        .goal-item { display:flex; align-items:center; gap:8px; padding:8px 12px; background:#fafafa; border-radius:var(--radius-sm); margin-bottom:6px; border:1px solid #eee; }
-        .goal-team-badge { width:28px; height:28px; border-radius:50%; font-weight:900; font-size:0.75em; color:#fff; display:flex; align-items:center; justify-content:center; }
-        .goal-team-A { background: #d32f2f; } .goal-team-B { background: #1976d2; }
-        .goal-item input { padding:6px 10px; border:1px solid #e0e0e0; border-radius:14px; font-family:var(--font); }
-        .goal-player { flex:1; min-width:100px; } .goal-minute { width:60px; text-align:center; font-weight:600; }
-        .edit-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:20px; padding-top:16px; border-top:1px solid var(--border); }
-        .toast {
-            position:fixed; top:20px; left:50%; transform:translateX(-50%); background:var(--black); color:var(--yellow);
-            padding:12px 24px; border-radius:30px; font-weight:600; z-index:999; opacity:0; transition:0.3s; white-space:nowrap;
-        }
-        .toast.show { opacity:1; }
+        .modal-close:hover { color:var(--black); }
+        .modal-header { font-size:1.3em; font-weight:800; margin-bottom:14px; color: var(--black); }
+        .detail-row { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:8px; font-size:0.95em; }
+        .detail-label { font-weight:700; color:#555; min-width:60px; }
+        .detail-value { color: var(--text); word-break:break-word; }
+        .modal-goals { margin-top:12px; padding-top:12px; border-top:1px dashed #ddd; }
+        .modal-img { max-width:100%; max-height:240px; border-radius:8px; margin:10px 0; }
+        .modal-diary { background:#fdfcf7; border-left:3px solid var(--yellow); padding:10px 14px; margin:10px 0; font-size:0.9em; white-space:pre-wrap; border-radius:0 8px 8px 0; }
     </style>
 </head>
 <body>
-    <div class="toast" id="toast"></div>
-    <div class="header">
-        <div class="logo"><span>⚽</span> 坤哥的进球记录簿 · 编辑</div>
-        <div>
-            <button class="btn btn-outline" onclick="window.open('show.html','_blank')">👁 查看展示页</button>
-        </div>
+    <div class="hero">
+        <span class="trophy">🏆</span>
+        <h1>坤哥的进球记录簿</h1>
+        <p class="sub">你是我世界里唯一的金球先生❤️</p>
+    </div>
+    <div class="container">
+        <div class="stats-bar" id="statsBar">加载中…</div>
+        <div id="matchesContainer">加载中…</div>
+    </div>
+    <div class="footer">
+        <span>来自爱你的zxy</span> · 你的每一粒进球我都会记得
     </div>
 
-    <div class="main-container">
-        <div class="match-list-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-            <h2>📅 比赛列表 <span id="matchCount" style="background:var(--yellow); color:var(--black); padding:4px 12px; border-radius:20px; font-size:0.8em;">0 场</span></h2>
-            <button class="btn-add" onclick="addMatch()">＋ 添加比赛</button>
-        </div>
-        <div id="matchList"></div>
-        <div class="edit-panel" id="editPanel">
-            <h3>✏️ 编辑比赛</h3>
-            <div class="form-row">
-                <div class="form-group"><label>📅 日期</label><input type="date" id="editDate"></div>
-                <div class="form-group"><label>📍 地点</label><input type="text" id="editLocation" placeholder="如：奥体中心"></div>
-                <div class="form-group"><label>📝 备注</label><input type="text" id="editNotes" placeholder="友谊赛/联赛"></div>
-            </div>
-            <div class="form-row">
-                <div class="form-group"><label>🔴 队伍A</label><input type="text" id="editTeamA"></div>
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <input type="number" id="editScoreA" class="score-input" value="0" min="0">
-                    <span style="font-size:1.5em; font-weight:900;">:</span>
-                    <input type="number" id="editScoreB" class="score-input" value="0" min="0">
-                </div>
-                <div class="form-group"><label>🔵 队伍B</label><input type="text" id="editTeamB"></div>
-            </div>
-            <div class="form-row">
-                <div class="form-group" style="flex:2;"><label>📷 图片链接</label><input type="text" id="editImgUrl" placeholder="输入图片网址，如 https://..."></div>
-            </div>
-            <div class="form-group" style="margin-bottom:12px;">
-                <label>📝 比赛日记</label>
-                <textarea id="editDiary" rows="3" placeholder="记录本场比赛的精彩瞬间…"></textarea>
-            </div>
-            <div class="goals-section">
-                <h4>⚽ 进球记录</h4>
-                <div id="goalsList"></div>
-                <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
-                    <select id="newGoalTeam"><option value="A">队伍A</option><option value="B">队伍B</option></select>
-                    <input type="text" id="newGoalPlayer" placeholder="球员名" style="flex:1; min-width:100px;">
-                    <input type="number" id="newGoalMinute" value="1" min="1" style="width:60px; text-align:center;">
-                    <button class="btn-add" onclick="addGoal()">＋ 添加</button>
-                </div>
-            </div>
-            <div class="edit-actions">
-                <button class="btn btn-yellow" onclick="saveMatch()">💾 保存修改</button>
-                <button class="btn btn-outline" style="color:#c0392b; border-color:#e0d0d0;" onclick="cancelEdit()">取消</button>
-            </div>
+    <!-- 详情模态框 -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content" id="modalContent">
+            <button class="modal-close" onclick="closeModal()">✕</button>
+            <div id="modalBody"></div>
         </div>
     </div>
 
     <script>
         // ========== 替换为你自己的 Firebase 配置 ==========
-      const firebaseConfig = {
+        const firebaseConfig = {
   apiKey: "AIzaSyCU_Gt0SqS70SSwp2Qgyybx0Xv3mPasS7c",
   authDomain: "lkgoals.firebaseapp.com",
   databaseURL: "https://lkgoals-default-rtdb.firebaseio.com",
@@ -140,241 +117,106 @@
   messagingSenderId: "244388763214",
   appId: "1:244388763214:web:ab648bf94463b45344151f"
 };
-
         // ================================================
-
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
-        const matchesRef = database.ref('matches');
 
-        // 当前所有比赛的数组（保持与Firebase同步）
-        let matchesArray = [];
-        let editingKey = null; // 使用Firebase的key作为唯一标识，而不是自定义id
+        let globalMatches = [];
 
-        // 实时监听
-        matchesRef.on('value', (snapshot) => {
-            const val = snapshot.val();
-            matchesArray = [];
-            if (val) {
-                // Firebase存储为对象 {key1: {...}, key2: {...}}，转为数组并保留key
-                Object.keys(val).forEach(key => {
-                    matchesArray.push({
-                        key: key,
-                        ...val[key]
-                    });
+        function loadAndRender(matchesObj) {
+            const matches = [];
+            if (matchesObj) {
+                Object.keys(matchesObj).forEach(key => {
+                    matches.push({ key, ...matchesObj[key] });
                 });
             }
-            renderMatchList();
-            // 如果正在编辑的比赛被他人删除，关闭编辑面板
-            if (editingKey && !matchesArray.find(m => m.key === editingKey)) {
-                cancelEdit();
-            }
-        });
-
-        // 获取当前编辑的比赛对象
-        function getEditingMatch() {
-            return matchesArray.find(m => m.key === editingKey);
-        }
-
-        function renderMatchList() {
-            const container = document.getElementById('matchList');
-            const sorted = [...matchesArray].sort((a,b) => new Date(b.date) - new Date(a.date));
-            document.getElementById('matchCount').textContent = sorted.length + ' 场';
+            globalMatches = matches;
+            const sorted = [...matches].sort((a,b) => new Date(b.date) - new Date(a.date));
             
-            if (sorted.length === 0) {
-                container.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px;">暂无比赛，点击上方添加</div>';
-                return;
-            }
+            let total = sorted.length, wins = 0, draws = 0, losses = 0, goals = 0;
+            sorted.forEach(m => {
+                goals += (m.scoreA||0) + (m.scoreB||0);
+                if ((m.scoreA||0) > (m.scoreB||0)) wins++;
+                else if (m.scoreA === m.scoreB) draws++;
+                else losses++;
+            });
             
-            container.innerHTML = sorted.map(m => `
-                <div class="match-card ${m.key === editingKey ? 'active' : ''}" onclick="editMatch('${m.key}')">
-                    <button class="delete-match-btn" onclick="event.stopPropagation();deleteMatch('${m.key}')">🗑</button>
-                    <div style="display:flex; justify-content:space-between;">
-                        <span style="font-size:0.8em;color:#777;">📅 ${m.date || '未设置'}</span>
-                        ${m.notes ? `<span style="font-size:0.7em;background:#f5b700;color:#000;padding:2px 10px;border-radius:12px;">${m.notes}</span>` : ''}
+            document.getElementById('statsBar').innerHTML = `
+                <div class="stat-item">📅 ${total} 场</div>
+                <div class="stat-item">🏆 ${wins} 胜</div>
+                <div class="stat-item">🤝 ${draws} 平</div>
+                <div class="stat-item">💪 ${losses} 负</div>
+                <div class="stat-item">⚽ ${goals} 球</div>
+            `;
+
+            let html = '';
+            sorted.forEach(m => {
+                const goalsSorted = (m.goals || []).sort((a,b) => a.minute - b.minute);
+                const goalsHTML = goalsSorted.map(g => 
+                    `<span class="goal-dot"><span class="dot dot-${g.team}"></span>${g.player} <strong>${g.minute}'</strong></span>`
+                ).join('');
+                // 卡片上依然展示图片（如果有），但不展示日记
+                const imgHtml = m.imgUrl ? `<img src="${m.imgUrl}" class="match-img" alt="比赛照片" onerror="this.style.display='none'">` : '';
+                
+                html += `
+                <div class="match-card" onclick="showDetail('${m.key}')">
+                    <div style="display:flex; justify-content:space-between; flex-wrap:wrap;">
+                        <span class="match-date">📅 ${m.date}</span>
+                        ${m.notes ? `<span style="font-size:0.75em; background:#f5b700; color:#000; padding:3px 10px; border-radius:12px;">${m.notes}</span>` : ''}
                     </div>
-                    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;">
-                        <span class="match-teams">🔴 ${m.teamA || '?'} vs 🔵 ${m.teamB || '?'}</span>
-                        <span class="match-score">${m.scoreA || 0} : ${m.scoreB || 0}</span>
+                    <div class="teams-row">
+                        <span class="team-name">🏠 ${m.teamA}</span>
+                        <span class="score-display">${m.scoreA} : ${m.scoreB}</span>
+                        <span class="team-name">✈️ ${m.teamB}</span>
                     </div>
-                    <div style="font-size:0.8em; color:#777; margin-top:4px;">
-                        ${m.location ? '📍 ' + m.location + ' ' : ''}
-                        ${m.imgUrl ? '📷 有照片 ' : ''}
-                        ⚽ ${(m.goals && m.goals.length > 0) ? m.goals.map(g => g.player + ' ' + g.minute + "'").join(' · ') : '无进球'}
-                    </div>
-                </div>
-            `).join('');
+                    ${imgHtml}
+                    ${goalsSorted.length ? `<div style="margin-top:8px;">${goalsHTML}</div>` : ''}
+                    ${m.location ? `<div style="font-size:0.78em; color:#999; margin-top:6px;">📍 ${m.location}</div>` : ''}
+                    <div style="text-align:right; margin-top:6px; font-size:0.75em; color:#aaa;">点击查看详情 ›</div>
+                </div>`;
+            });
+            document.getElementById('matchesContainer').innerHTML = html || '<div style="text-align:center;color:#aaa;padding:40px;">暂无比赛记录</div>';
         }
 
-        function editMatch(key) {
-            const m = matchesArray.find(x => x.key === key);
-            if (!m) return;
-            
-            editingKey = key;
-            document.getElementById('editDate').value = m.date || '';
-            document.getElementById('editLocation').value = m.location || '';
-            document.getElementById('editNotes').value = m.notes || '';
-            document.getElementById('editTeamA').value = m.teamA || '';
-            document.getElementById('editTeamB').value = m.teamB || '';
-            document.getElementById('editScoreA').value = m.scoreA || 0;
-            document.getElementById('editScoreB').value = m.scoreB || 0;
-            document.getElementById('editImgUrl').value = m.imgUrl || '';
-            document.getElementById('editDiary').value = m.diary || '';
-            
-            document.getElementById('editPanel').classList.add('visible');
-            renderGoals();
-            renderMatchList();
-            document.getElementById('editPanel').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        function cancelEdit() {
-            editingKey = null;
-            document.getElementById('editPanel').classList.remove('visible');
-            renderMatchList();
-        }
-
-        function saveMatch() {
-            if (!editingKey) return;
-            const matchData = {
-                date: document.getElementById('editDate').value,
-                location: document.getElementById('editLocation').value.trim(),
-                notes: document.getElementById('editNotes').value.trim(),
-                teamA: document.getElementById('editTeamA').value.trim() || '队伍A',
-                teamB: document.getElementById('editTeamB').value.trim() || '队伍B',
-                scoreA: parseInt(document.getElementById('editScoreA').value) || 0,
-                scoreB: parseInt(document.getElementById('editScoreB').value) || 0,
-                imgUrl: document.getElementById('editImgUrl').value.trim(),
-                diary: document.getElementById('editDiary').value.trim(),
-                goals: getEditingMatch()?.goals || []  // 保留已有的goals
-            };
-            
-            matchesRef.child(editingKey).update(matchData)
-                .then(() => showToast('✅ 已保存并同步'))
-                .catch(err => showToast('❌ 保存失败: ' + err.message));
-        }
-
-        function addMatch() {
-            const newMatch = {
-                date: new Date().toISOString().split('T')[0],
-                teamA: '队伍A',
-                teamB: '队伍B',
-                scoreA: 0,
-                scoreB: 0,
-                location: '',
-                notes: '',
-                imgUrl: '',
-                diary: '',
-                goals: []
-            };
-            
-            // 使用 push 生成唯一key
-            const newRef = matchesRef.push(newMatch);
-            // 添加成功后自动进入编辑
-            newRef.then(() => {
-                editingKey = newRef.key;
-                // 等待监听更新后渲染
-                setTimeout(() => {
-                    const match = matchesArray.find(m => m.key === editingKey);
-                    if (match) {
-                        editMatch(editingKey);
-                    }
-                }, 300);
-            }).catch(err => showToast('❌ 添加失败: ' + err.message));
-        }
-
-        function deleteMatch(key) {
-            if (!confirm('确定删除这场比赛吗？')) return;
-            matchesRef.child(key).remove()
-                .then(() => {
-                    if (editingKey === key) cancelEdit();
-                    showToast('🗑 已删除');
-                })
-                .catch(err => showToast('❌ 删除失败: ' + err.message));
-        }
-
-        // ========== 进球管理 ==========
-        function renderGoals() {
-            const match = getEditingMatch();
-            const container = document.getElementById('goalsList');
-            if (!match || !match.goals || match.goals.length === 0) {
-                container.innerHTML = '<div style="color:#aaa;padding:8px;">暂无进球记录</div>';
-                return;
-            }
-            
-            container.innerHTML = match.goals.map((g, i) => `
-                <div class="goal-item">
-                    <span class="goal-team-badge goal-team-${g.team}">${g.team === 'A' ? (match.teamA?.[0] || 'A') : (match.teamB?.[0] || 'B')}</span>
-                    <input class="goal-player" value="${g.player}" onchange="updateGoal(${i}, 'player', this.value)">
-                    <input class="goal-minute" value="${g.minute}" type="number" min="1" onchange="updateGoal(${i}, 'minute', this.value)">
-                    <span style="font-size:0.7em;">分钟</span>
-                    <button class="btn-danger" onclick="removeGoal(${i})">✕</button>
-                </div>
-            `).join('');
-        }
-
-        function updateGoal(index, field, value) {
-            if (!editingKey) return;
-            const match = getEditingMatch();
-            if (!match || !match.goals) return;
-            
-            if (field === 'player') match.goals[index].player = value;
-            else if (field === 'minute') match.goals[index].minute = parseInt(value) || 0;
-            
-            // 更新到Firebase
-            matchesRef.child(editingKey).child('goals').set(match.goals)
-                .catch(err => showToast('❌ 更新失败: ' + err.message));
-        }
-
-        function removeGoal(index) {
-            if (!editingKey) return;
-            const match = getEditingMatch();
-            if (!match || !match.goals) return;
-            
-            match.goals.splice(index, 1);
-            matchesRef.child(editingKey).child('goals').set(match.goals)
-                .then(() => renderGoals())
-                .catch(err => showToast('❌ 删除失败: ' + err.message));
-        }
-
-        function addGoal() {
-            if (!editingKey) {
-                showToast('请先选择或添加一场比赛');
-                return;
-            }
-            const player = document.getElementById('newGoalPlayer').value.trim();
-            if (!player) {
-                showToast('请输入球员名');
-                return;
-            }
-            
-            const match = getEditingMatch();
+        function showDetail(key) {
+            const match = globalMatches.find(m => m.key === key);
             if (!match) return;
             
-            const newGoal = {
-                player: player,
-                minute: parseInt(document.getElementById('newGoalMinute').value) || 1,
-                team: document.getElementById('newGoalTeam').value
-            };
-            
-            if (!match.goals) match.goals = [];
-            match.goals.push(newGoal);
-            match.goals.sort((a,b) => a.minute - b.minute);
-            
-            matchesRef.child(editingKey).child('goals').set(match.goals)
-                .then(() => {
-                    document.getElementById('newGoalPlayer').value = '';
-                    document.getElementById('newGoalMinute').value = '1';
-                    renderGoals();
-                })
-                .catch(err => showToast('❌ 添加失败: ' + err.message));
+            const goalsSorted = (match.goals || []).sort((a,b) => a.minute - b.minute);
+            const goalsHTML = goalsSorted.length > 0 
+                ? `<div class="modal-goals"><strong>⚽ 进球记录：</strong><br>` + 
+                  goalsSorted.map(g => `<span class="goal-dot"><span class="dot dot-${g.team}"></span>${g.player} <strong>${g.minute}'</strong> <small>(${g.team==='A'?'主队':'客队'})</small></span>`).join('') + 
+                  `</div>` 
+                : '';
+            const imgHTML = match.imgUrl ? `<img src="${match.imgUrl}" class="modal-img" alt="比赛照片" onerror="this.style.display='none'">` : '';
+            const diaryHTML = match.diary ? `<div class="modal-diary">📝 ${match.diary}</div>` : '';
+
+            const content = `
+                <div class="modal-header">📋 比赛详情</div>
+                <div class="detail-row"><span class="detail-label">📅 日期：</span><span class="detail-value">${match.date}</span></div>
+                ${match.location ? `<div class="detail-row"><span class="detail-label">📍 地点：</span><span class="detail-value">${match.location}</span></div>` : ''}
+                ${match.notes ? `<div class="detail-row"><span class="detail-label">📝 备注：</span><span class="detail-value">${match.notes}</span></div>` : ''}
+                <div class="detail-row"><span class="detail-label">🏠 主队：</span><span class="detail-value">${match.teamA}</span></div>
+                <div class="detail-row"><span class="detail-label">✈️ 客队：</span><span class="detail-value">${match.teamB}</span></div>
+                <div class="detail-row"><span class="detail-label">⚽ 比分：</span><span class="detail-value" style="font-weight:900; font-size:1.2em;">${match.scoreA} : ${match.scoreB}</span></div>
+                ${imgHTML}
+                ${diaryHTML}
+                ${goalsHTML}
+            `;
+            document.getElementById('modalBody').innerHTML = content;
+            document.getElementById('modalOverlay').classList.add('active');
         }
 
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            t.textContent = msg;
-            t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 2500);
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
         }
+        document.getElementById('modalOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        database.ref('matches').on('value', (snapshot) => {
+            loadAndRender(snapshot.val());
+        });
     </script>
 </body>
 </html>
