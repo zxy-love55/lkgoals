@@ -4,13 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>⚽ 坤哥的进球记录簿</title>
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
         :root {
             --yellow: #f5b700; --yellow-dark: #c79100; --black: #1a1a1a;
             --gray: #f4f4f4; --white: #ffffff; --text: #1a1a1a;
-            --border: #e0e0e0; --radius: 16px; --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            --border: #e0e0e0; --radius: 16px; --radius-sm: 10px;
+            --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
         }
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family: var(--font); background: var(--gray); color: var(--text); min-height:100vh; }
@@ -36,29 +38,59 @@
         .match-card {
             background: var(--white); border-radius: var(--radius); padding:20px 18px; margin-bottom:16px;
             box-shadow:0 2px 12px rgba(0,0,0,0.06); border:1px solid var(--border); border-left:6px solid var(--yellow);
+            cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .match-card:hover {
+            transform: translateY(-2px);
+            box-shadow:0 6px 18px rgba(0,0,0,0.1);
         }
         .match-date { font-size:0.8em; color:#777; background:#f9f9f9; padding:4px 12px; border-radius:14px; }
         .teams-row { display:flex; align-items:center; justify-content:center; gap:12px; margin:10px 0; flex-wrap:wrap; }
         .team-name { font-weight:700; font-size:1.1em; max-width:140px; word-break:break-word; }
         .score-display { font-weight:900; font-size:2.6em; color: var(--black); letter-spacing:2px; }
-        .goal-dot { display:inline-flex; align-items:center; gap:5px; background:#fafafa; padding:5px 10px; border-radius:16px; margin:3px 5px 3px 0; font-size:0.82em; border:1px solid #eee; }
+        .goal-dot { display:inline-flex; align-items:center; gap:5px; background:#fafafa; padding:5px 10px; border-radius:16px; margin:3px 5px; font-size:0.82em; border:1px solid #eee; }
         .dot { width:10px; height:10px; border-radius:50%; }
         .dot-A { background: #d32f2f; } .dot-B { background: #1976d2; }
-        .match-img { max-width:100%; max-height:300px; border-radius:10px; margin:10px 0; display:block; }
-        .diary-box { background:#fdfcf7; border-left:3px solid var(--yellow); padding:10px 14px; margin:10px 0; border-radius:0 8px 8px 0; font-size:0.9em; white-space:pre-wrap; }
+        .match-img { max-width:100%; max-height:200px; border-radius:10px; margin:8px 0; display:block; }
+        .diary-box { background:#fdfcf7; border-left:3px solid var(--yellow); padding:10px 14px; margin:10px 0; font-size:0.9em; white-space:pre-wrap; }
         .footer {
             text-align:center; padding:30px 20px; color: #555; font-size:0.9em;
             border-top:1px solid var(--border); margin-top:20px;
             font-weight:500; letter-spacing:0.5px;
         }
         .footer span { color: var(--yellow-dark); font-weight:700; }
+
+        /* 详情模态框 */
+        .modal-overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center;
+            z-index:1000; visibility:hidden; opacity:0; transition:0.3s;
+        }
+        .modal-overlay.active { visibility:visible; opacity:1; }
+        .modal-content {
+            background: var(--white); border-radius: var(--radius); padding:24px 20px;
+            max-width:500px; width:90%; max-height:85vh; overflow-y:auto;
+            box-shadow:0 12px 40px rgba(0,0,0,0.3); position:relative;
+        }
+        .modal-close {
+            position:absolute; top:10px; right:14px; background:none; border:none;
+            font-size:1.6em; cursor:pointer; color:#999; transition:0.2s;
+        }
+        .modal-close:hover { color:var(--black); }
+        .modal-header { font-size:1.3em; font-weight:800; margin-bottom:14px; color: var(--black); }
+        .detail-row { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:8px; font-size:0.95em; }
+        .detail-label { font-weight:700; color:#555; min-width:60px; }
+        .detail-value { color: var(--text); word-break:break-word; }
+        .modal-goals { margin-top:12px; padding-top:12px; border-top:1px dashed #ddd; }
+        .modal-img { max-width:100%; max-height:240px; border-radius:8px; margin:10px 0; }
+        .modal-diary { background:#fdfcf7; border-left:3px solid var(--yellow); padding:10px 14px; margin:10px 0; font-size:0.9em; white-space:pre-wrap; border-radius:0 8px 8px 0; }
     </style>
 </head>
 <body>
     <div class="hero">
         <span class="trophy">🏆</span>
         <h1>坤哥的进球记录簿</h1>
-        <p class="sub">你是我世界里唯一的金球先生❤️</p>
+        <p class="sub">每一粒进球，都是闪耀的星</p>
     </div>
     <div class="container">
         <div class="stats-bar" id="statsBar">加载中…</div>
@@ -68,9 +100,17 @@
         <span>来自爱你的zxy</span> · 你的每一粒进球我都会记得
     </div>
 
+    <!-- 详情模态框 -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content" id="modalContent">
+            <button class="modal-close" onclick="closeModal()">✕</button>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
     <script>
-        // ========== 替换为你自己的 Firebase 配置（与 edit.html 相同） ==========
-const firebaseConfig = {
+        // ========== 你的 Firebase 配置 ==========
+        const firebaseConfig = {
   apiKey: "AIzaSyCU_Gt0SqS70SSwp2Qgyybx0Xv3mPasS7c",
   authDomain: "lkgoals.firebaseapp.com",
   databaseURL: "https://lkgoals-default-rtdb.firebaseio.com",
@@ -80,21 +120,32 @@ const firebaseConfig = {
   appId: "1:244388763214:web:ab648bf94463b45344151f"
 };
 
-        // ================================================================
-
+        // ======================================
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
-        const matchesRef = database.ref('matches');
 
-        function loadAndRender(matchesArray) {
-            const sorted = [...matchesArray].sort((a,b) => new Date(b.date) - new Date(a.date));
+        // 全局 matches 数组
+        let globalMatches = [];
+
+        // 加载并渲染所有比赛
+        function loadAndRender(matchesObj) {
+            const matches = [];
+            if (matchesObj) {
+                Object.keys(matchesObj).forEach(key => {
+                    matches.push({ key, ...matchesObj[key] });
+                });
+            }
+            globalMatches = matches; // 保存下来，供详情弹窗使用
+            const sorted = [...matches].sort((a,b) => new Date(b.date) - new Date(a.date));
+            
             let total = sorted.length, wins = 0, draws = 0, losses = 0, goals = 0;
             sorted.forEach(m => {
-                goals += (m.scoreA || 0) + (m.scoreB || 0);
+                goals += (m.scoreA||0) + (m.scoreB||0);
                 if ((m.scoreA||0) > (m.scoreB||0)) wins++;
-                else if ((m.scoreA||0) === (m.scoreB||0)) draws++;
+                else if (m.scoreA === m.scoreB) draws++;
                 else losses++;
             });
+            
             document.getElementById('statsBar').innerHTML = `
                 <div class="stat-item">📅 ${total} 场</div>
                 <div class="stat-item">🏆 ${wins} 胜</div>
@@ -105,14 +156,17 @@ const firebaseConfig = {
 
             let html = '';
             sorted.forEach(m => {
-                const allGoals = (m.goals||[]).sort((a,b) => a.minute - b.minute);
-                const goalsHTML = allGoals.map(g =>
+                const goalsSorted = (m.goals || []).sort((a,b) => a.minute - b.minute);
+                const goalsHTML = goalsSorted.map(g => 
                     `<span class="goal-dot"><span class="dot dot-${g.team}"></span>${g.player} <strong>${g.minute}'</strong></span>`
                 ).join('');
+                // 概览卡片中依然显示已有的图片和日记（如果需要保留）
+                // 但为了干净，概览里只显示缩略信息，详情弹窗显示全部。这里保持原样。
                 const imgHtml = m.imgUrl ? `<img src="${m.imgUrl}" class="match-img" alt="比赛照片" onerror="this.style.display='none'">` : '';
                 const diaryHtml = m.diary ? `<div class="diary-box">📝 ${m.diary}</div>` : '';
+                
                 html += `
-                <div class="match-card">
+                <div class="match-card" onclick="showDetail('${m.key}')">
                     <div style="display:flex; justify-content:space-between; flex-wrap:wrap;">
                         <span class="match-date">📅 ${m.date}</span>
                         ${m.notes ? `<span style="font-size:0.75em; background:#f5b700; color:#000; padding:3px 10px; border-radius:12px;">${m.notes}</span>` : ''}
@@ -124,18 +178,56 @@ const firebaseConfig = {
                     </div>
                     ${imgHtml}
                     ${diaryHtml}
-                    ${allGoals.length ? `<div style="margin-top:8px;">${goalsHTML}</div>` : ''}
+                    ${goalsSorted.length ? `<div style="margin-top:8px;">${goalsHTML}</div>` : ''}
                     ${m.location ? `<div style="font-size:0.78em; color:#999; margin-top:6px;">📍 ${m.location}</div>` : ''}
+                    <div style="text-align:right; margin-top:6px; font-size:0.75em; color:#aaa;">点击查看详情 ›</div>
                 </div>`;
             });
             document.getElementById('matchesContainer').innerHTML = html || '<div style="text-align:center;color:#aaa;padding:40px;">暂无比赛记录</div>';
         }
 
+        // 显示详情弹窗
+        function showDetail(key) {
+            const match = globalMatches.find(m => m.key === key);
+            if (!match) return;
+            
+            const goalsSorted = (match.goals || []).sort((a,b) => a.minute - b.minute);
+            const goalsHTML = goalsSorted.length > 0 
+                ? `<div class="modal-goals"><strong>⚽ 进球记录：</strong><br>` + 
+                  goalsSorted.map(g => `<span class="goal-dot"><span class="dot dot-${g.team}"></span>${g.player} <strong>${g.minute}'</strong></span>`).join('') + 
+                  `</div>` 
+                : '';
+            const imgHTML = match.imgUrl ? `<img src="${match.imgUrl}" class="modal-img" alt="比赛照片" onerror="this.style.display='none'">` : '';
+            const diaryHTML = match.diary ? `<div class="modal-diary">📝 ${match.diary}</div>` : '';
+
+            const content = `
+                <div class="modal-header">📋 比赛详情</div>
+                <div class="detail-row"><span class="detail-label">📅 日期：</span><span class="detail-value">${match.date}</span></div>
+                ${match.location ? `<div class="detail-row"><span class="detail-label">📍 地点：</span><span class="detail-value">${match.location}</span></div>` : ''}
+                ${match.notes ? `<div class="detail-row"><span class="detail-label">📝 备注：</span><span class="detail-value">${match.notes}</span></div>` : ''}
+                <div class="detail-row"><span class="detail-label">🔴 队伍A：</span><span class="detail-value">${match.teamA}</span></div>
+                <div class="detail-row"><span class="detail-label">🔵 队伍B：</span><span class="detail-value">${match.teamB}</span></div>
+                <div class="detail-row"><span class="detail-label">⚽ 比分：</span><span class="detail-value" style="font-weight:900; font-size:1.2em;">${match.scoreA} : ${match.scoreB}</span></div>
+                ${imgHTML}
+                ${diaryHTML}
+                ${goalsHTML}
+            `;
+            document.getElementById('modalBody').innerHTML = content;
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        // 关闭弹窗
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+        // 点击遮罩层关闭
+        document.getElementById('modalOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
         // 实时监听
-        matchesRef.on('value', (snapshot) => {
-            const val = snapshot.val();
-            const matches = val ? Object.values(val) : [];
-            loadAndRender(matches);
+        database.ref('matches').on('value', (snapshot) => {
+            loadAndRender(snapshot.val());
         });
     </script>
 </body>
