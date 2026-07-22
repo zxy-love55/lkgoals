@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>⚽ 坤哥的进球记录簿</title>
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
@@ -52,7 +51,6 @@
         .dot { width:10px; height:10px; border-radius:50%; }
         .dot-A { background: #d32f2f; } .dot-B { background: #1976d2; }
         .match-img { max-width:100%; max-height:200px; border-radius:10px; margin:8px 0; display:block; }
-        .diary-box { background:#fdfcf7; border-left:3px solid var(--yellow); padding:10px 14px; margin:10px 0; font-size:0.9em; white-space:pre-wrap; }
         .footer {
             text-align:center; padding:30px 20px; color: #555; font-size:0.9em;
             border-top:1px solid var(--border); margin-top:20px;
@@ -90,7 +88,7 @@
     <div class="hero">
         <span class="trophy">🏆</span>
         <h1>坤哥的进球记录簿</h1>
-        <p class="sub">每一粒进球，都是闪耀的星</p>
+        <p class="sub">你是我世界里唯一的金球先生❤️</p>
     </div>
     <div class="container">
         <div class="stats-bar" id="statsBar">加载中…</div>
@@ -109,7 +107,7 @@
     </div>
 
     <script>
-        // ========== 你的 Firebase 配置 ==========
+        // ========== 替换为你自己的 Firebase 配置 ==========
         const firebaseConfig = {
   apiKey: "AIzaSyCU_Gt0SqS70SSwp2Qgyybx0Xv3mPasS7c",
   authDomain: "lkgoals.firebaseapp.com",
@@ -119,15 +117,12 @@
   messagingSenderId: "244388763214",
   appId: "1:244388763214:web:ab648bf94463b45344151f"
 };
-
-        // ======================================
+        // ================================================
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // 全局 matches 数组
         let globalMatches = [];
 
-        // 加载并渲染所有比赛
         function loadAndRender(matchesObj) {
             const matches = [];
             if (matchesObj) {
@@ -135,7 +130,7 @@
                     matches.push({ key, ...matchesObj[key] });
                 });
             }
-            globalMatches = matches; // 保存下来，供详情弹窗使用
+            globalMatches = matches;
             const sorted = [...matches].sort((a,b) => new Date(b.date) - new Date(a.date));
             
             let total = sorted.length, wins = 0, draws = 0, losses = 0, goals = 0;
@@ -160,10 +155,8 @@
                 const goalsHTML = goalsSorted.map(g => 
                     `<span class="goal-dot"><span class="dot dot-${g.team}"></span>${g.player} <strong>${g.minute}'</strong></span>`
                 ).join('');
-                // 概览卡片中依然显示已有的图片和日记（如果需要保留）
-                // 但为了干净，概览里只显示缩略信息，详情弹窗显示全部。这里保持原样。
+                // 卡片上依然展示图片（如果有），但不展示日记
                 const imgHtml = m.imgUrl ? `<img src="${m.imgUrl}" class="match-img" alt="比赛照片" onerror="this.style.display='none'">` : '';
-                const diaryHtml = m.diary ? `<div class="diary-box">📝 ${m.diary}</div>` : '';
                 
                 html += `
                 <div class="match-card" onclick="showDetail('${m.key}')">
@@ -172,12 +165,11 @@
                         ${m.notes ? `<span style="font-size:0.75em; background:#f5b700; color:#000; padding:3px 10px; border-radius:12px;">${m.notes}</span>` : ''}
                     </div>
                     <div class="teams-row">
-                        <span class="team-name">🔴 ${m.teamA}</span>
+                        <span class="team-name">🏠 ${m.teamA}</span>
                         <span class="score-display">${m.scoreA} : ${m.scoreB}</span>
-                        <span class="team-name">🔵 ${m.teamB}</span>
+                        <span class="team-name">✈️ ${m.teamB}</span>
                     </div>
                     ${imgHtml}
-                    ${diaryHtml}
                     ${goalsSorted.length ? `<div style="margin-top:8px;">${goalsHTML}</div>` : ''}
                     ${m.location ? `<div style="font-size:0.78em; color:#999; margin-top:6px;">📍 ${m.location}</div>` : ''}
                     <div style="text-align:right; margin-top:6px; font-size:0.75em; color:#aaa;">点击查看详情 ›</div>
@@ -186,7 +178,6 @@
             document.getElementById('matchesContainer').innerHTML = html || '<div style="text-align:center;color:#aaa;padding:40px;">暂无比赛记录</div>';
         }
 
-        // 显示详情弹窗
         function showDetail(key) {
             const match = globalMatches.find(m => m.key === key);
             if (!match) return;
@@ -194,7 +185,7 @@
             const goalsSorted = (match.goals || []).sort((a,b) => a.minute - b.minute);
             const goalsHTML = goalsSorted.length > 0 
                 ? `<div class="modal-goals"><strong>⚽ 进球记录：</strong><br>` + 
-                  goalsSorted.map(g => `<span class="goal-dot"><span class="dot dot-${g.team}"></span>${g.player} <strong>${g.minute}'</strong></span>`).join('') + 
+                  goalsSorted.map(g => `<span class="goal-dot"><span class="dot dot-${g.team}"></span>${g.player} <strong>${g.minute}'</strong> <small>(${g.team==='A'?'主队':'客队'})</small></span>`).join('') + 
                   `</div>` 
                 : '';
             const imgHTML = match.imgUrl ? `<img src="${match.imgUrl}" class="modal-img" alt="比赛照片" onerror="this.style.display='none'">` : '';
@@ -205,8 +196,8 @@
                 <div class="detail-row"><span class="detail-label">📅 日期：</span><span class="detail-value">${match.date}</span></div>
                 ${match.location ? `<div class="detail-row"><span class="detail-label">📍 地点：</span><span class="detail-value">${match.location}</span></div>` : ''}
                 ${match.notes ? `<div class="detail-row"><span class="detail-label">📝 备注：</span><span class="detail-value">${match.notes}</span></div>` : ''}
-                <div class="detail-row"><span class="detail-label">🔴 队伍A：</span><span class="detail-value">${match.teamA}</span></div>
-                <div class="detail-row"><span class="detail-label">🔵 队伍B：</span><span class="detail-value">${match.teamB}</span></div>
+                <div class="detail-row"><span class="detail-label">🏠 主队：</span><span class="detail-value">${match.teamA}</span></div>
+                <div class="detail-row"><span class="detail-label">✈️ 客队：</span><span class="detail-value">${match.teamB}</span></div>
                 <div class="detail-row"><span class="detail-label">⚽ 比分：</span><span class="detail-value" style="font-weight:900; font-size:1.2em;">${match.scoreA} : ${match.scoreB}</span></div>
                 ${imgHTML}
                 ${diaryHTML}
@@ -216,16 +207,13 @@
             document.getElementById('modalOverlay').classList.add('active');
         }
 
-        // 关闭弹窗
         function closeModal() {
             document.getElementById('modalOverlay').classList.remove('active');
         }
-        // 点击遮罩层关闭
         document.getElementById('modalOverlay').addEventListener('click', function(e) {
             if (e.target === this) closeModal();
         });
 
-        // 实时监听
         database.ref('matches').on('value', (snapshot) => {
             loadAndRender(snapshot.val());
         });
