@@ -135,7 +135,10 @@
             
             let total = sorted.length, wins = 0, draws = 0, losses = 0, goals = 0;
             sorted.forEach(m => {
-                goals += (m.scoreA||0) + (m.scoreB||0);
+                // 🎯 只统计李坤的进球
+                const lkGoals = (m.goals || []).filter(g => g.player === '李坤');
+                goals += lkGoals.length;
+                
                 if ((m.scoreA||0) > (m.scoreB||0)) wins++;
                 else if (m.scoreA === m.scoreB) draws++;
                 else losses++;
@@ -155,7 +158,6 @@
                 const goalsHTML = goalsSorted.map(g => 
                     `<span class="goal-dot"><span class="dot dot-${g.team}"></span>${g.player} <strong>${g.minute}'</strong></span>`
                 ).join('');
-                // 卡片上依然展示图片（如果有），但不展示日记
                 const imgHtml = m.imgUrl ? `<img src="${m.imgUrl}" class="match-img" alt="比赛照片" onerror="this.style.display='none'">` : '';
                 
                 html += `
