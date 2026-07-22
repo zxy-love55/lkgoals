@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚽ 坤哥的进球记录簿</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <style>
+        :root {
+            --yellow: #f5b700; --yellow-dark: #c79100; --black: #1a1a1a;
+            --gray: #f4f4f4; --white: #ffffff; --text: #1a1a1a;
+            --border: #e0e0e0; --radius: 16px; --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: var(--font); background: var(--gray); color: var(--text); min-height:100vh; }
+        .hero {
+            background: linear-gradient(135deg, #000 0%, #222 100%); color: var(--yellow);
+            text-align:center; padding:32px 20px 28px; position:relative; overflow:hidden;
+        }
+        .hero::after {
+            content:''; position:absolute; bottom:-20px; left:0; right:0; height:40px;
+            background:var(--gray); border-radius:50% 50% 0 0;
+        }
+        .hero .trophy { font-size:3.2em; display:block; animation: bounce 2s infinite; }
+        @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
+        .hero h1 { font-size:1.8em; font-weight:800; position:relative; z-index:1; }
+        .hero .sub { font-size:0.9em; opacity:0.9; position:relative; z-index:1; }
+        .container { max-width:700px; margin:0 auto; padding:8px 16px 40px; }
+        .stats-bar { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:18px; }
+        .stat-item {
+            background: var(--white); border-radius:25px; padding:10px 18px;
+            box-shadow:0 2px 8px rgba(0,0,0,0.05); font-weight:700; font-size:0.85em;
+            border:1px solid var(--yellow);
+        }
+        .match-card {
+            background: var(--white); border-radius: var(--radius); padding:20px 18px; margin-bottom:16px;
+            box-shadow:0 2px 12px rgba(0,0,0,0.06); border:1px solid var(--border); border-left:6px solid var(--yellow);
+        }
+        .match-date { font-size:0.8em; color:#777; background:#f9f9f9; padding:4px 12px; border-radius:14px; }
+        .teams-row { display:flex; align-items:center; justify-content:center; gap:12px; margin:10px 0; flex-wrap:wrap; }
+        .team-name { font-weight:700; font-size:1.1em; max-width:140px; word-break:break-word; }
+        .score-display { font-weight:900; font-size:2.6em; color: var(--black); letter-spacing:2px; }
+        .goal-dot { display:inline-flex; align-items:center; gap:5px; background:#fafafa; padding:5px 10px; border-radius:16px; margin:3px 5px 3px 0; font-size:0.82em; border:1px solid #eee; }
+        .dot { width:10px; height:10px; border-radius:50%; }
+        .dot-A { background: #d32f2f; } .dot-B { background: #1976d2; }
+        .match-img { max-width:100%; max-height:300px; border-radius:10px; margin:10px 0; display:block; }
+        .diary-box { background:#fdfcf7; border-left:3px solid var(--yellow); padding:10px 14px; margin:10px 0; border-radius:0 8px 8px 0; font-size:0.9em; white-space:pre-wrap; }
+        .footer {
+            text-align:center; padding:30px 20px; color: #555; font-size:0.9em;
+            border-top:1px solid var(--border); margin-top:20px;
+            font-weight:500; letter-spacing:0.5px;
+        }
+        .footer span { color: var(--yellow-dark); font-weight:700; }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <span class="trophy">🏆</span>
+        <h1>坤哥的进球记录簿</h1>
+        <p class="sub">你是我世界里唯一的金球先生❤️</p>
+    </div>
+    <div class="container">
+        <div class="stats-bar" id="statsBar">加载中…</div>
+        <div id="matchesContainer">加载中…</div>
+    </div>
+    <div class="footer">
+        <span>来自爱你的zxy</span> · 你的每一粒进球我都会记得
+    </div>
+
+    <script>
+        // ========== 替换为你自己的 Firebase 配置（与 edit.html 相同） ==========
+const firebaseConfig = {
+  apiKey: "AIzaSyCU_Gt0SqS70SSwp2Qgyybx0Xv3mPasS7c",
+  authDomain: "lkgoals.firebaseapp.com",
+  databaseURL: "https://lkgoals-default-rtdb.firebaseio.com",
+  projectId: "lkgoals",
+  storageBucket: "lkgoals.firebasestorage.app",
+  messagingSenderId: "244388763214",
+  appId: "1:244388763214:web:ab648bf94463b45344151f"
+};
+
+        // ================================================================
+
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const matchesRef = database.ref('matches');
+
+        function loadAndRender(matchesArray) {
+            const sorted = [...matchesArray].sort((a,b) => new Date(b.date) - new Date(a.date));
+            let total = sorted.length, wins = 0, draws = 0, losses = 0, goals = 0;
+            sorted.forEach(m => {
+                goals += (m.scoreA || 0) + (m.scoreB || 0);
+                if ((m.scoreA||0) > (m.scoreB||0)) wins++;
+                else if ((m.scoreA||0) === (m.scoreB||0)) draws++;
+                else losses++;
+            });
+            document.getElementById('statsBar').innerHTML = `
+                <div class="stat-item">📅 ${total} 场</div>
+                <div class="stat-item">🏆 ${wins} 胜</div>
+                <div class="stat-item">🤝 ${draws} 平</div>
+                <div class="stat-item">💪 ${losses} 负</div>
+                <div class="stat-item">⚽ ${goals} 球</div>
+            `;
+
+            let html = '';
+            sorted.forEach(m => {
+                const allGoals = (m.goals||[]).sort((a,b) => a.minute - b.minute);
+                const goalsHTML = allGoals.map(g =>
+                    `<span class="goal-dot"><span class="dot dot-${g.team}"></span>${g.player} <strong>${g.minute}'</strong></span>`
+                ).join('');
+                const imgHtml = m.imgUrl ? `<img src="${m.imgUrl}" class="match-img" alt="比赛照片" onerror="this.style.display='none'">` : '';
+                const diaryHtml = m.diary ? `<div class="diary-box">📝 ${m.diary}</div>` : '';
+                html += `
+                <div class="match-card">
+                    <div style="display:flex; justify-content:space-between; flex-wrap:wrap;">
+                        <span class="match-date">📅 ${m.date}</span>
+                        ${m.notes ? `<span style="font-size:0.75em; background:#f5b700; color:#000; padding:3px 10px; border-radius:12px;">${m.notes}</span>` : ''}
+                    </div>
+                    <div class="teams-row">
+                        <span class="team-name">🔴 ${m.teamA}</span>
+                        <span class="score-display">${m.scoreA} : ${m.scoreB}</span>
+                        <span class="team-name">🔵 ${m.teamB}</span>
+                    </div>
+                    ${imgHtml}
+                    ${diaryHtml}
+                    ${allGoals.length ? `<div style="margin-top:8px;">${goalsHTML}</div>` : ''}
+                    ${m.location ? `<div style="font-size:0.78em; color:#999; margin-top:6px;">📍 ${m.location}</div>` : ''}
+                </div>`;
+            });
+            document.getElementById('matchesContainer').innerHTML = html || '<div style="text-align:center;color:#aaa;padding:40px;">暂无比赛记录</div>';
+        }
+
+        // 实时监听
+        matchesRef.on('value', (snapshot) => {
+            const val = snapshot.val();
+            const matches = val ? Object.values(val) : [];
+            loadAndRender(matches);
+        });
+    </script>
+</body>
+</html>
