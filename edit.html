@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚽ 坤哥进球记录簿 · 编辑</title>
+    <title>⚽ 坤哥的进球记录簿 · 编辑</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
@@ -54,7 +54,7 @@
         .form-row { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
         .form-group { flex:1; min-width:120px; }
         .form-group label { font-size:0.8em; font-weight:700; color:#555; display:block; margin-bottom:4px; }
-        .form-group input, .form-group textarea {
+        .form-group input, .form-group textarea, .form-group select {
             width:100%; padding:10px 14px; border:1.5px solid var(--border); border-radius:var(--radius-sm);
             font-family:var(--font); background:#fafafa;
         }
@@ -72,6 +72,8 @@
             padding:12px 24px; border-radius:30px; font-weight:600; z-index:999; opacity:0; transition:0.3s; white-space:nowrap;
         }
         .toast.show { opacity:1; }
+        .radio-group { display:flex; gap:20px; align-items:center; }
+        .radio-group label { font-weight:normal; display:flex; align-items:center; gap:5px; cursor:pointer; }
     </style>
 </head>
 <body>
@@ -91,7 +93,6 @@
         <div id="matchList">加载中…</div>
         <div class="edit-panel" id="editPanel">
             <h3>✏️ 编辑比赛</h3>
-            <!-- 日期和时间放在同一行 -->
             <div class="form-row">
                 <div class="form-group">
                     <label>📅 日期</label>
@@ -119,6 +120,16 @@
                 </div>
                 <div class="form-group"><label>✈️ 客队</label><input type="text" id="editTeamB" placeholder="客队名称"></div>
             </div>
+            <!-- 新增：我的队伍选择 -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>👤 我所在的队伍</label>
+                    <select id="editMyTeam">
+                        <option value="A">🏠 主队</option>
+                        <option value="B">✈️ 客队</option>
+                    </select>
+                </div>
+            </div>
             <div class="form-group" style="margin-bottom:12px;">
                 <label>📝 比赛日记</label>
                 <textarea id="editDiary" rows="3" placeholder="记录本场比赛的精彩瞬间…"></textarea>
@@ -141,17 +152,15 @@
     </div>
 
     <script>
-        // ========== 替换为你自己的 Firebase 配置 ==========
-     const firebaseConfig = {
-  apiKey: "AIzaSyCU_Gt0SqS70SSwp2Qgyybx0Xv3mPasS7c",
-  authDomain: "lkgoals.firebaseapp.com",
-  databaseURL: "https://lkgoals-default-rtdb.firebaseio.com",
-  projectId: "lkgoals",
-  storageBucket: "lkgoals.firebasestorage.app",
-  messagingSenderId: "244388763214",
-  appId: "1:244388763214:web:ab648bf94463b45344151f"
-};
-        // ================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCU_Gt0SqS70SSwp2Qgyybx0Xv3mPasS7c",
+            authDomain: "lkgoals.firebaseapp.com",
+            databaseURL: "https://lkgoals-default-rtdb.firebaseio.com",
+            projectId: "lkgoals",
+            storageBucket: "lkgoals.firebasestorage.app",
+            messagingSenderId: "244388763214",
+            appId: "1:244388763214:web:ab648bf94463b45344151f"
+        };
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         const matchesRef = database.ref('matches');
@@ -202,6 +211,7 @@
                     </div>
                     <div style="font-size:0.8em; color:#777; margin-top:4px;">
                         ${m.location ? '📍 ' + m.location + ' ' : ''}
+                        ${m.myTeam ? `👤 我：${m.myTeam==='A'?'主队':'客队'} ` : '👤 未设置 '}
                         ⚽ ${(m.goals && m.goals.length > 0) ? m.goals.map(g => g.player + ' ' + g.minute + "'").join(' · ') : '无进球'}
                     </div>
                 </div>
@@ -214,13 +224,14 @@
             
             editingKey = key;
             document.getElementById('editDate').value = m.date || '';
-            document.getElementById('editTime').value = m.time || '';   // 新增时间
+            document.getElementById('editTime').value = m.time || '';
             document.getElementById('editLocation').value = m.location || '';
             document.getElementById('editNotes').value = m.notes || '';
             document.getElementById('editTeamA').value = m.teamA || '';
             document.getElementById('editTeamB').value = m.teamB || '';
             document.getElementById('editScoreA').value = m.scoreA || 0;
             document.getElementById('editScoreB').value = m.scoreB || 0;
+            document.getElementById('editMyTeam').value = m.myTeam || 'A'; // 默认主队
             document.getElementById('editDiary').value = m.diary || '';
             
             document.getElementById('editPanel').classList.add('visible');
@@ -239,13 +250,14 @@
             if (!editingKey) return;
             const matchData = {
                 date: document.getElementById('editDate').value,
-                time: document.getElementById('editTime').value,   // 新增时间
+                time: document.getElementById('editTime').value,
                 location: document.getElementById('editLocation').value.trim(),
                 notes: document.getElementById('editNotes').value.trim(),
                 teamA: document.getElementById('editTeamA').value.trim() || '主队',
                 teamB: document.getElementById('editTeamB').value.trim() || '客队',
                 scoreA: parseInt(document.getElementById('editScoreA').value) || 0,
                 scoreB: parseInt(document.getElementById('editScoreB').value) || 0,
+                myTeam: document.getElementById('editMyTeam').value,  // 新增
                 diary: document.getElementById('editDiary').value.trim(),
                 goals: getEditingMatch()?.goals || []
             };
@@ -258,11 +270,12 @@
         function addMatch() {
             const newMatch = {
                 date: new Date().toISOString().split('T')[0],
-                time: '',   // 默认空
+                time: '',
                 teamA: '主队',
                 teamB: '客队',
                 scoreA: 0,
                 scoreB: 0,
+                myTeam: 'A',  // 默认主队
                 location: '',
                 notes: '',
                 diary: '',
@@ -312,10 +325,8 @@
             if (!editingKey) return;
             const match = getEditingMatch();
             if (!match || !match.goals) return;
-            
             if (field === 'player') match.goals[index].player = value;
             else if (field === 'minute') match.goals[index].minute = parseInt(value) || 0;
-            
             matchesRef.child(editingKey).child('goals').set(match.goals)
                 .catch(err => showToast('❌ 更新失败: ' + err.message));
         }
@@ -324,7 +335,6 @@
             if (!editingKey) return;
             const match = getEditingMatch();
             if (!match || !match.goals) return;
-            
             match.goals.splice(index, 1);
             matchesRef.child(editingKey).child('goals').set(match.goals)
                 .then(() => renderGoals())
@@ -337,24 +347,17 @@
                 return;
             }
             const player = document.getElementById('newGoalPlayer').value.trim();
-            if (!player) {
-                showToast('请输入球员名');
-                return;
-            }
-            
+            if (!player) { showToast('请输入球员名'); return; }
             const match = getEditingMatch();
             if (!match) return;
-            
             const newGoal = {
                 player: player,
                 minute: parseInt(document.getElementById('newGoalMinute').value) || 1,
                 team: document.getElementById('newGoalTeam').value
             };
-            
             if (!match.goals) match.goals = [];
             match.goals.push(newGoal);
             match.goals.sort((a,b) => a.minute - b.minute);
-            
             matchesRef.child(editingKey).child('goals').set(match.goals)
                 .then(() => {
                     document.getElementById('newGoalPlayer').value = '';
