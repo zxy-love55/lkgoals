@@ -159,9 +159,11 @@
             sorted.forEach(m => {
                 const goalsSorted = (m.goals || []).sort((a,b) => a.minute - b.minute);
                 const goalsHTML = goalsSorted.map(g => {
-                    const iconClass = g.goalType === 'penalty' ? 'goal-penalty' : 'goal-normal';
+                    const isPenalty = g.goalType === 'penalty';
+                    const iconClass = isPenalty ? 'goal-penalty' : 'goal-normal';
+                    const icon = isPenalty ? '🥅' : '⚽';
                     const number = g.number ? g.number + '. ' : '';
-                    return `<span class="goal-dot"><span class="dot dot-${g.team}"></span><span class="goal-icon ${iconClass}">⚽</span> ${number}${g.player} <strong>${g.minute}'</strong></span>`;
+                    return `<span class="goal-dot"><span class="dot dot-${g.team}"></span><span class="goal-icon ${iconClass}">${icon}</span> ${number}${g.player} <strong>${g.minute}'</strong></span>`;
                 }).join('');
                 const imgHtml = m.imgUrl ? `<img src="${m.imgUrl}" class="match-img" alt="比赛照片" onerror="this.style.display='none'">` : '';
                 
@@ -193,9 +195,11 @@
             const goalsHTML = goalsSorted.length > 0 
                 ? `<div class="modal-goals"><strong>⚽ 进球记录：</strong><br>` + 
                   goalsSorted.map(g => {
-                      const iconClass = g.goalType === 'penalty' ? 'goal-penalty' : 'goal-normal';
+                      const isPenalty = g.goalType === 'penalty';
+                      const iconClass = isPenalty ? 'goal-penalty' : 'goal-normal';
+                      const icon = isPenalty ? '🥅' : '⚽';
                       const number = g.number ? g.number + '. ' : '';
-                      return `<span class="goal-dot"><span class="dot dot-${g.team}"></span><span class="goal-icon ${iconClass}">⚽</span> ${number}${g.player} <strong>${g.minute}'</strong> <small>(${g.team==='A'?'主队':'客队'})</small></span>`;
+                      return `<span class="goal-dot"><span class="dot dot-${g.team}"></span><span class="goal-icon ${iconClass}">${icon}</span> ${number}${g.player} <strong>${g.minute}'</strong> <small>(${g.team==='A'?'主队':'客队'})</small></span>`;
                   }).join('') + 
                   `</div>` 
                 : '';
