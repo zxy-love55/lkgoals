@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚽ 坤哥进球记录簿 · 编辑</title>
+    <title>⚽ 坤哥的进球记录簿 · 编辑</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
@@ -91,10 +91,24 @@
         <div id="matchList">加载中…</div>
         <div class="edit-panel" id="editPanel">
             <h3>✏️ 编辑比赛</h3>
+            <!-- 日期和时间放在同一行 -->
             <div class="form-row">
-                <div class="form-group"><label>📅 日期</label><input type="date" id="editDate"></div>
-                <div class="form-group"><label>📍 地点</label><input type="text" id="editLocation" placeholder="如：奥体中心"></div>
-                <div class="form-group"><label>📝 备注</label><input type="text" id="editNotes" placeholder="友谊赛/联赛"></div>
+                <div class="form-group">
+                    <label>📅 日期</label>
+                    <input type="date" id="editDate">
+                </div>
+                <div class="form-group" style="max-width:130px;">
+                    <label>⏰ 开球时间</label>
+                    <input type="time" id="editTime">
+                </div>
+                <div class="form-group">
+                    <label>📍 地点</label>
+                    <input type="text" id="editLocation" placeholder="如：奥体中心">
+                </div>
+                <div class="form-group">
+                    <label>📝 备注</label>
+                    <input type="text" id="editNotes" placeholder="友谊赛/联赛">
+                </div>
             </div>
             <div class="form-row">
                 <div class="form-group"><label>🏠 主队</label><input type="text" id="editTeamA" placeholder="主队名称"></div>
@@ -128,7 +142,7 @@
 
     <script>
         // ========== 替换为你自己的 Firebase 配置 ==========
-        const firebaseConfig = {
+       const firebaseConfig = {
   apiKey: "AIzaSyCU_Gt0SqS70SSwp2Qgyybx0Xv3mPasS7c",
   authDomain: "lkgoals.firebaseapp.com",
   databaseURL: "https://lkgoals-default-rtdb.firebaseio.com",
@@ -137,7 +151,6 @@
   messagingSenderId: "244388763214",
   appId: "1:244388763214:web:ab648bf94463b45344151f"
 };
-
         // ================================================
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
@@ -178,7 +191,9 @@
                 <div class="match-card ${m.key === editingKey ? 'active' : ''}" onclick="editMatch('${m.key}')">
                     <button class="delete-match-btn" onclick="event.stopPropagation();deleteMatch('${m.key}')">🗑</button>
                     <div style="display:flex; justify-content:space-between;">
-                        <span style="font-size:0.8em;color:#777;">📅 ${m.date || '未设置'}</span>
+                        <span style="font-size:0.8em;color:#777;">
+                            📅 ${m.date || '未设置'}${m.time ? ' ⏰ ' + m.time : ''}
+                        </span>
                         ${m.notes ? `<span style="font-size:0.7em;background:#f5b700;color:#000;padding:2px 10px;border-radius:12px;">${m.notes}</span>` : ''}
                     </div>
                     <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;">
@@ -199,6 +214,7 @@
             
             editingKey = key;
             document.getElementById('editDate').value = m.date || '';
+            document.getElementById('editTime').value = m.time || '';   // 新增时间
             document.getElementById('editLocation').value = m.location || '';
             document.getElementById('editNotes').value = m.notes || '';
             document.getElementById('editTeamA').value = m.teamA || '';
@@ -223,6 +239,7 @@
             if (!editingKey) return;
             const matchData = {
                 date: document.getElementById('editDate').value,
+                time: document.getElementById('editTime').value,   // 新增时间
                 location: document.getElementById('editLocation').value.trim(),
                 notes: document.getElementById('editNotes').value.trim(),
                 teamA: document.getElementById('editTeamA').value.trim() || '主队',
@@ -241,6 +258,7 @@
         function addMatch() {
             const newMatch = {
                 date: new Date().toISOString().split('T')[0],
+                time: '',   // 默认空
                 teamA: '主队',
                 teamB: '客队',
                 scoreA: 0,
