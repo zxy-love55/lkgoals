@@ -60,6 +60,12 @@
         }
         .form-group textarea { resize:vertical; min-height:60px; }
         .score-input { width:70px !important; text-align:center; font-size:1.3em !important; font-weight:700 !important; }
+        .penalty-section {
+            background: #f9f9f9; border-radius: var(--radius-sm); padding:12px; margin-top:12px;
+            border:1px solid var(--border);
+        }
+        .penalty-section label { font-size:0.85em; font-weight:700; }
+        .penalty-input { width:60px !important; text-align:center; font-weight:700; }
         .goals-section { margin-top:16px; padding-top:16px; border-top:1px dashed var(--border); }
         .goal-item { display:flex; align-items:center; gap:8px; padding:8px 12px; background:#fafafa; border-radius:var(--radius-sm); margin-bottom:6px; border:1px solid #eee; flex-wrap:wrap; }
         .goal-team-badge { width:28px; height:28px; border-radius:50%; font-weight:900; font-size:0.75em; color:#fff; display:flex; align-items:center; justify-content:center; }
@@ -74,6 +80,7 @@
             padding:12px 24px; border-radius:30px; font-weight:600; z-index:999; opacity:0; transition:0.3s; white-space:nowrap;
         }
         .toast.show { opacity:1; }
+        .checkbox-label { display:flex; align-items:center; gap:8px; cursor:pointer; }
     </style>
 </head>
 <body>
@@ -107,6 +114,25 @@
                     <input type="number" id="editScoreB" class="score-input" value="0" min="0">
                 </div>
                 <div class="form-group"><label>✈️ 客队</label><input type="text" id="editTeamB" placeholder="客队名称"></div>
+            </div>
+            <!-- 点球大战 (仅平局时显示) -->
+            <div id="penaltySection" class="penalty-section" style="display:none;">
+                <div class="checkbox-label">
+                    <input type="checkbox" id="editPenaltyShootout" onchange="togglePenaltyInputs()">
+                    <label for="editPenaltyShootout">🥅 点球大战</label>
+                </div>
+                <div id="penaltyInputs" style="display:none; margin-top:10px;">
+                    <div class="form-row">
+                        <div class="form-group" style="max-width:120px;">
+                            <label>主队点球</label>
+                            <input type="number" id="editPenaltyA" class="penalty-input" value="0" min="0">
+                        </div>
+                        <div class="form-group" style="max-width:120px;">
+                            <label>客队点球</label>
+                            <input type="number" id="editPenaltyB" class="penalty-input" value="0" min="0">
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
@@ -188,7 +214,12 @@
                 return;
             }
             
-            container.innerHTML = sorted.map(m => `
+            container.innerHTML = sorted.map(m => {
+                let scoreDisplay = `${m.scoreA || 0} : ${m.scoreB || 0}`;
+                if (m.penaltyShootout && (m.scoreA === m.scoreB)) {
+                    scoreDisplay = `(${m.penaltyA||0}) ${m.scoreA||0} : ${m.scoreB||0} (${m.penaltyB||0})`;
+                }
+                return `
                 <div class="match-card ${m.key === editingKey ? 'active' : ''}" onclick="editMatch('${m.key}')">
                     <button class="delete-match-btn" onclick="event.stopPropagation();deleteMatch('${m.key}')">🗑</button>
                     <div style="display:flex; justify-content:space-between;">
@@ -199,15 +230,15 @@
                     </div>
                     <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;">
                         <span class="match-teams">🏠 ${m.teamA || '?'} vs ✈️ ${m.teamB || '?'}</span>
-                        <span class="match-score">${m.scoreA || 0} : ${m.scoreB || 0}</span>
+                        <span class="match-score">${scoreDisplay}</span>
                     </div>
                     <div style="font-size:0.8em; color:#777; margin-top:4px;">
                         ${m.location ? '📍 ' + m.location + ' ' : ''}
                         ${m.myTeam ? `👤 我：${m.myTeam==='A'?'主队':'客队'} ` : '👤 未设置 '}
                         ⚽ ${(m.goals && m.goals.length > 0) ? m.goals.map(g => (g.number?g.number+'. ':'') + g.player + ' ' + g.minute + "'").join(' · ') : '无进球'}
                     </div>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
         }
 
         function editMatch(key) {
@@ -226,6 +257,14 @@
             document.getElementById('editMyTeam').value = m.myTeam || 'A';
             document.getElementById('editDiary').value = m.diary || '';
             
+            // 点球相关
+            const isDraw = (parseInt(m.scoreA)||0) === (parseInt(m.scoreB)||0);
+            document.getElementById('penaltySection').style.display = isDraw ? 'block' : 'none';
+            document.getElementById('editPenaltyShootout').checked = m.penaltyShootout || false;
+            document.getElementById('editPenaltyA').value = m.penaltyA || 0;
+            document.getElementById('editPenaltyB').value = m.penaltyB || 0;
+            document.getElementById('penaltyInputs').style.display = m.penaltyShootout ? 'block' : 'none';
+            
             document.getElementById('editPanel').classList.add('visible');
             renderGoals();
             renderMatchList();
@@ -238,8 +277,20 @@
             renderMatchList();
         }
 
+        function togglePenaltyInputs() {
+            document.getElementById('penaltyInputs').style.display = 
+                document.getElementById('editPenaltyShootout').checked ? 'block' : 'none';
+        }
+
         function saveMatch() {
             if (!editingKey) return;
+            const scoreA = parseInt(document.getElementById('editScoreA').value) || 0;
+            const scoreB = parseInt(document.getElementById('editScoreB').value) || 0;
+            const isDraw = scoreA === scoreB;
+            const penaltyShootout = isDraw ? document.getElementById('editPenaltyShootout').checked : false;
+            const penaltyA = penaltyShootout ? (parseInt(document.getElementById('editPenaltyA').value) || 0) : 0;
+            const penaltyB = penaltyShootout ? (parseInt(document.getElementById('editPenaltyB').value) || 0) : 0;
+            
             const matchData = {
                 date: document.getElementById('editDate').value,
                 time: document.getElementById('editTime').value,
@@ -247,8 +298,11 @@
                 notes: document.getElementById('editNotes').value.trim(),
                 teamA: document.getElementById('editTeamA').value.trim() || '主队',
                 teamB: document.getElementById('editTeamB').value.trim() || '客队',
-                scoreA: parseInt(document.getElementById('editScoreA').value) || 0,
-                scoreB: parseInt(document.getElementById('editScoreB').value) || 0,
+                scoreA: scoreA,
+                scoreB: scoreB,
+                penaltyShootout: penaltyShootout,
+                penaltyA: penaltyA,
+                penaltyB: penaltyB,
                 myTeam: document.getElementById('editMyTeam').value,
                 diary: document.getElementById('editDiary').value.trim(),
                 goals: getEditingMatch()?.goals || []
@@ -267,13 +321,15 @@
                 teamB: '客队',
                 scoreA: 0,
                 scoreB: 0,
+                penaltyShootout: false,
+                penaltyA: 0,
+                penaltyB: 0,
                 myTeam: 'A',
                 location: '',
                 notes: '',
                 diary: '',
                 goals: []
             };
-            
             const newRef = matchesRef.push(newMatch);
             newRef.then(() => {
                 editingKey = newRef.key;
@@ -301,7 +357,6 @@
                 container.innerHTML = '<div style="color:#aaa;padding:8px;">暂无进球记录</div>';
                 return;
             }
-            
             container.innerHTML = match.goals.map((g, i) => `
                 <div class="goal-item">
                     <span class="goal-team-badge goal-team-${g.team}">${g.team === 'A' ? '主' : '客'}</span>
@@ -374,6 +429,23 @@
             t.textContent = msg;
             t.classList.add('show');
             setTimeout(() => t.classList.remove('show'), 2500);
+        }
+
+        // 监听比分变化，显示/隐藏点球区域
+        document.getElementById('editScoreA').addEventListener('input', checkPenaltyVisibility);
+        document.getElementById('editScoreB').addEventListener('input', checkPenaltyVisibility);
+        function checkPenaltyVisibility() {
+            if (!editingKey) return;
+            const scoreA = parseInt(document.getElementById('editScoreA').value) || 0;
+            const scoreB = parseInt(document.getElementById('editScoreB').value) || 0;
+            const section = document.getElementById('penaltySection');
+            if (scoreA === scoreB) {
+                section.style.display = 'block';
+            } else {
+                section.style.display = 'none';
+                document.getElementById('editPenaltyShootout').checked = false;
+                document.getElementById('penaltyInputs').style.display = 'none';
+            }
         }
     </script>
 </body>
