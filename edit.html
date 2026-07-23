@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚽ 坤哥的进球记录簿 · 编辑</title>
+    <title>⚽ 坤哥进球记录簿 · 编辑</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
@@ -61,19 +61,19 @@
         .form-group textarea { resize:vertical; min-height:60px; }
         .score-input { width:70px !important; text-align:center; font-size:1.3em !important; font-weight:700 !important; }
         .goals-section { margin-top:16px; padding-top:16px; border-top:1px dashed var(--border); }
-        .goal-item { display:flex; align-items:center; gap:8px; padding:8px 12px; background:#fafafa; border-radius:var(--radius-sm); margin-bottom:6px; border:1px solid #eee; }
+        .goal-item { display:flex; align-items:center; gap:8px; padding:8px 12px; background:#fafafa; border-radius:var(--radius-sm); margin-bottom:6px; border:1px solid #eee; flex-wrap:wrap; }
         .goal-team-badge { width:28px; height:28px; border-radius:50%; font-weight:900; font-size:0.75em; color:#fff; display:flex; align-items:center; justify-content:center; }
         .goal-team-A { background: #d32f2f; } .goal-team-B { background: #1976d2; }
-        .goal-item input { padding:6px 10px; border:1px solid #e0e0e0; border-radius:14px; font-family:var(--font); }
-        .goal-player { flex:1; min-width:100px; } .goal-minute { width:60px; text-align:center; font-weight:600; }
+        .goal-item input, .goal-item select { padding:6px 10px; border:1px solid #e0e0e0; border-radius:14px; font-family:var(--font); }
+        .goal-player { flex:1; min-width:90px; } .goal-number { width:50px; text-align:center; }
+        .goal-minute { width:60px; text-align:center; font-weight:600; }
+        .goal-type { width:90px; }
         .edit-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:20px; padding-top:16px; border-top:1px solid var(--border); }
         .toast {
             position:fixed; top:20px; left:50%; transform:translateX(-50%); background:var(--black); color:var(--yellow);
             padding:12px 24px; border-radius:30px; font-weight:600; z-index:999; opacity:0; transition:0.3s; white-space:nowrap;
         }
         .toast.show { opacity:1; }
-        .radio-group { display:flex; gap:20px; align-items:center; }
-        .radio-group label { font-weight:normal; display:flex; align-items:center; gap:5px; cursor:pointer; }
     </style>
 </head>
 <body>
@@ -94,22 +94,10 @@
         <div class="edit-panel" id="editPanel">
             <h3>✏️ 编辑比赛</h3>
             <div class="form-row">
-                <div class="form-group">
-                    <label>📅 日期</label>
-                    <input type="date" id="editDate">
-                </div>
-                <div class="form-group" style="max-width:130px;">
-                    <label>⏰ 开球时间</label>
-                    <input type="time" id="editTime">
-                </div>
-                <div class="form-group">
-                    <label>📍 地点</label>
-                    <input type="text" id="editLocation" placeholder="如：奥体中心">
-                </div>
-                <div class="form-group">
-                    <label>📝 备注</label>
-                    <input type="text" id="editNotes" placeholder="友谊赛/联赛">
-                </div>
+                <div class="form-group"><label>📅 日期</label><input type="date" id="editDate"></div>
+                <div class="form-group" style="max-width:130px;"><label>⏰ 开球时间</label><input type="time" id="editTime"></div>
+                <div class="form-group"><label>📍 地点</label><input type="text" id="editLocation" placeholder="如：奥体中心"></div>
+                <div class="form-group"><label>📝 备注</label><input type="text" id="editNotes" placeholder="友谊赛/联赛"></div>
             </div>
             <div class="form-row">
                 <div class="form-group"><label>🏠 主队</label><input type="text" id="editTeamA" placeholder="主队名称"></div>
@@ -120,7 +108,6 @@
                 </div>
                 <div class="form-group"><label>✈️ 客队</label><input type="text" id="editTeamB" placeholder="客队名称"></div>
             </div>
-            <!-- 新增：我的队伍选择 -->
             <div class="form-row">
                 <div class="form-group">
                     <label>👤 我所在的队伍</label>
@@ -137,10 +124,15 @@
             <div class="goals-section">
                 <h4>⚽ 进球记录</h4>
                 <div id="goalsList"></div>
-                <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+                <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; align-items:center;">
                     <select id="newGoalTeam"><option value="A">主队</option><option value="B">客队</option></select>
-                    <input type="text" id="newGoalPlayer" placeholder="球员名" style="flex:1; min-width:100px;">
+                    <input type="text" id="newGoalNumber" placeholder="号码" style="width:60px; text-align:center;">
+                    <input type="text" id="newGoalPlayer" placeholder="球员名" style="flex:1; min-width:90px;">
                     <input type="number" id="newGoalMinute" value="1" min="1" style="width:60px; text-align:center;">
+                    <select id="newGoalType" style="width:90px;">
+                        <option value="normal">普通进球</option>
+                        <option value="penalty">点球</option>
+                    </select>
                     <button class="btn-add" onclick="addGoal()">＋ 添加</button>
                 </div>
             </div>
@@ -212,7 +204,7 @@
                     <div style="font-size:0.8em; color:#777; margin-top:4px;">
                         ${m.location ? '📍 ' + m.location + ' ' : ''}
                         ${m.myTeam ? `👤 我：${m.myTeam==='A'?'主队':'客队'} ` : '👤 未设置 '}
-                        ⚽ ${(m.goals && m.goals.length > 0) ? m.goals.map(g => g.player + ' ' + g.minute + "'").join(' · ') : '无进球'}
+                        ⚽ ${(m.goals && m.goals.length > 0) ? m.goals.map(g => (g.number?g.number+'. ':'') + g.player + ' ' + g.minute + "'").join(' · ') : '无进球'}
                     </div>
                 </div>
             `).join('');
@@ -231,7 +223,7 @@
             document.getElementById('editTeamB').value = m.teamB || '';
             document.getElementById('editScoreA').value = m.scoreA || 0;
             document.getElementById('editScoreB').value = m.scoreB || 0;
-            document.getElementById('editMyTeam').value = m.myTeam || 'A'; // 默认主队
+            document.getElementById('editMyTeam').value = m.myTeam || 'A';
             document.getElementById('editDiary').value = m.diary || '';
             
             document.getElementById('editPanel').classList.add('visible');
@@ -257,7 +249,7 @@
                 teamB: document.getElementById('editTeamB').value.trim() || '客队',
                 scoreA: parseInt(document.getElementById('editScoreA').value) || 0,
                 scoreB: parseInt(document.getElementById('editScoreB').value) || 0,
-                myTeam: document.getElementById('editMyTeam').value,  // 新增
+                myTeam: document.getElementById('editMyTeam').value,
                 diary: document.getElementById('editDiary').value.trim(),
                 goals: getEditingMatch()?.goals || []
             };
@@ -275,7 +267,7 @@
                 teamB: '客队',
                 scoreA: 0,
                 scoreB: 0,
-                myTeam: 'A',  // 默认主队
+                myTeam: 'A',
                 location: '',
                 notes: '',
                 diary: '',
@@ -313,9 +305,13 @@
             container.innerHTML = match.goals.map((g, i) => `
                 <div class="goal-item">
                     <span class="goal-team-badge goal-team-${g.team}">${g.team === 'A' ? '主' : '客'}</span>
+                    <input class="goal-number" value="${g.number || ''}" placeholder="号码" onchange="updateGoal(${i}, 'number', this.value)">
                     <input class="goal-player" value="${g.player}" onchange="updateGoal(${i}, 'player', this.value)">
                     <input class="goal-minute" value="${g.minute}" type="number" min="1" onchange="updateGoal(${i}, 'minute', this.value)">
-                    <span style="font-size:0.7em;">分钟</span>
+                    <select class="goal-type" onchange="updateGoal(${i}, 'goalType', this.value)">
+                        <option value="normal" ${g.goalType !== 'penalty' ? 'selected' : ''}>普通</option>
+                        <option value="penalty" ${g.goalType === 'penalty' ? 'selected' : ''}>点球</option>
+                    </select>
                     <button class="btn-danger" onclick="removeGoal(${i})">✕</button>
                 </div>
             `).join('');
@@ -327,6 +323,8 @@
             if (!match || !match.goals) return;
             if (field === 'player') match.goals[index].player = value;
             else if (field === 'minute') match.goals[index].minute = parseInt(value) || 0;
+            else if (field === 'number') match.goals[index].number = value.trim();
+            else if (field === 'goalType') match.goals[index].goalType = value;
             matchesRef.child(editingKey).child('goals').set(match.goals)
                 .catch(err => showToast('❌ 更新失败: ' + err.message));
         }
@@ -346,20 +344,24 @@
                 showToast('请先选择或添加一场比赛');
                 return;
             }
+            const number = document.getElementById('newGoalNumber').value.trim();
             const player = document.getElementById('newGoalPlayer').value.trim();
             if (!player) { showToast('请输入球员名'); return; }
             const match = getEditingMatch();
             if (!match) return;
             const newGoal = {
+                number: number,
                 player: player,
                 minute: parseInt(document.getElementById('newGoalMinute').value) || 1,
-                team: document.getElementById('newGoalTeam').value
+                team: document.getElementById('newGoalTeam').value,
+                goalType: document.getElementById('newGoalType').value
             };
             if (!match.goals) match.goals = [];
             match.goals.push(newGoal);
             match.goals.sort((a,b) => a.minute - b.minute);
             matchesRef.child(editingKey).child('goals').set(match.goals)
                 .then(() => {
+                    document.getElementById('newGoalNumber').value = '';
                     document.getElementById('newGoalPlayer').value = '';
                     document.getElementById('newGoalMinute').value = '1';
                     renderGoals();
