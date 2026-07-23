@@ -107,16 +107,16 @@
     </div>
 
     <script>
-        // ========== 替换为你自己的 Firebase 配置 ==========
+        // ========== 你的 Firebase 配置 ==========
         const firebaseConfig = {
-  apiKey: "AIzaSyCU_Gt0SqS70SSwp2Qgyybx0Xv3mPasS7c",
-  authDomain: "lkgoals.firebaseapp.com",
-  databaseURL: "https://lkgoals-default-rtdb.firebaseio.com",
-  projectId: "lkgoals",
-  storageBucket: "lkgoals.firebasestorage.app",
-  messagingSenderId: "244388763214",
-  appId: "1:244388763214:web:ab648bf94463b45344151f"
-};
+            apiKey: "AIzaSyCU_Gt0SqS70SSwp2Qgyybx0Xv3mPasS7c",
+            authDomain: "lkgoals.firebaseapp.com",
+            databaseURL: "https://lkgoals-default-rtdb.firebaseio.com",
+            projectId: "lkgoals",
+            storageBucket: "lkgoals.firebasestorage.app",
+            messagingSenderId: "244388763214",
+            appId: "1:244388763214:web:ab648bf94463b45344151f"
+        };
         // ================================================
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
@@ -135,7 +135,7 @@
             
             let total = sorted.length, wins = 0, draws = 0, losses = 0, goals = 0;
             sorted.forEach(m => {
-                // 🎯 只统计李坤的进球
+                // 只统计李坤的进球
                 const lkGoals = (m.goals || []).filter(g => g.player === '李坤');
                 goals += lkGoals.length;
                 
@@ -163,7 +163,7 @@
                 html += `
                 <div class="match-card" onclick="showDetail('${m.key}')">
                     <div style="display:flex; justify-content:space-between; flex-wrap:wrap;">
-                        <span class="match-date">📅 ${m.date}</span>
+                        <span class="match-date">📅 ${m.date}${m.time ? ' ⏰ ' + m.time : ''}</span>
                         ${m.notes ? `<span style="font-size:0.75em; background:#f5b700; color:#000; padding:3px 10px; border-radius:12px;">${m.notes}</span>` : ''}
                     </div>
                     <div class="teams-row">
@@ -196,6 +196,7 @@
             const content = `
                 <div class="modal-header">📋 比赛详情</div>
                 <div class="detail-row"><span class="detail-label">📅 日期：</span><span class="detail-value">${match.date}</span></div>
+                ${match.time ? `<div class="detail-row"><span class="detail-label">⏰ 时间：</span><span class="detail-value">${match.time}</span></div>` : ''}
                 ${match.location ? `<div class="detail-row"><span class="detail-label">📍 地点：</span><span class="detail-value">${match.location}</span></div>` : ''}
                 ${match.notes ? `<div class="detail-row"><span class="detail-label">📝 备注：</span><span class="detail-value">${match.notes}</span></div>` : ''}
                 <div class="detail-row"><span class="detail-label">🏠 主队：</span><span class="detail-value">${match.teamA}</span></div>
