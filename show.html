@@ -29,7 +29,7 @@
         @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
         .hero h1 { font-size:1.8em; font-weight:800; position:relative; z-index:1; }
         .hero .sub { font-size:0.9em; opacity:0.9; position:relative; z-index:1; }
-        .container { max-width:700px; margin:0 auto; padding:8px 16px 20px; }
+        .container { max-width:700px; margin:0 auto; padding:8px 16px 8px; }
         .stats-bar { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:18px; }
         .stat-item {
             background: var(--white); border-radius:25px; padding:10px 18px;
@@ -96,9 +96,20 @@
             color: #1a1a1a;
             margin-top: 6px;
         }
+        /* 备注标签垂直居中优化 */
+        .badge {
+            font-size:0.75em;
+            background:#f5b700;
+            color:#000;
+            padding:3px 10px;
+            border-radius:12px;
+            display: inline-flex;
+            align-items: center;
+            line-height: 1.2;
+        }
         .footer {
-            text-align:center; padding:20px 20px 25px; color: #555; font-size:0.9em;
-            border-top:1px solid var(--border); margin-top:10px;
+            text-align:center; padding:12px 20px 20px; color: #555; font-size:0.9em;
+            border-top:1px solid var(--border); margin-top:4px;
             font-weight:500; letter-spacing:0.5px;
         }
         .footer span { color: var(--yellow-dark); font-weight:700; }
@@ -232,7 +243,7 @@
                 <div class="match-card" onclick="showDetail('${m.key}')">
                     <div style="display:flex; justify-content:space-between; flex-wrap:wrap;">
                         <span class="match-date">📅 ${m.date}${m.time ? ' ⏰ ' + m.time : ''}</span>
-                        ${m.notes ? `<span style="font-size:0.75em; background:#f5b700; color:#000; padding:3px 10px; border-radius:12px;">${m.notes}</span>` : ''}
+                        ${m.notes ? `<span class="badge">${m.notes}</span>` : ''}
                     </div>
                     <div class="teams-row">
                         <span class="team-name team-left"><span class="team-text">${m.teamA}</span> 🏠</span>
