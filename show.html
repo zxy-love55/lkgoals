@@ -13,6 +13,7 @@
             --border: #e0e0e0; --radius: 16px; --radius-sm: 10px;
             --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
             --green: #2d8a4e;
+            --gold: #f5b700;
         }
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family: var(--font); background: var(--gray); color: var(--text); min-height:100vh; }
@@ -68,10 +69,14 @@
             letter-spacing: 2px;
             white-space: nowrap;
             text-align: center;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
         .penalty-score {
             font-size: 0.6em;
             font-weight: 700;
+            margin: 0 2px;
         }
         .goal-dot { display:inline-flex; align-items:center; gap:5px; background:#fafafa; padding:5px 10px; border-radius:16px; margin:3px 5px; font-size:0.82em; border:1px solid #eee; }
         .goal-icon { font-size:1.1em; }
@@ -80,6 +85,7 @@
         .dot { width:10px; height:10px; border-radius:50%; }
         .dot-A { background: #d32f2f; } .dot-B { background: #1976d2; }
         .match-img { max-width:100%; max-height:200px; border-radius:10px; margin:8px 0; display:block; }
+        .card-goals { font-size:0.82em; color:#555; margin-top:6px; }
         .footer {
             text-align:center; padding:30px 20px; color: #555; font-size:0.9em;
             border-top:1px solid var(--border); margin-top:20px;
@@ -87,6 +93,7 @@
         }
         .footer span { color: var(--yellow-dark); font-weight:700; }
 
+        /* 详情弹窗 */
         .modal-overlay {
             position: fixed; top:0; left:0; width:100%; height:100%;
             background: rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center;
@@ -108,6 +115,10 @@
         .detail-label { font-weight:700; color:#555; min-width:60px; }
         .detail-value { color: var(--text); word-break:break-word; }
         .modal-goals { margin-top:12px; padding-top:12px; border-top:1px dashed #ddd; }
+        .modal-goals .goal-group { margin-bottom:12px; }
+        .modal-goals .group-title { font-weight:700; font-size:0.9em; margin-bottom:6px; }
+        .modal-goals .goal-dot { margin:2px 4px; }
+        .player-kun { color: #c79100; font-weight:800; } /* 李坤特殊颜色 */
         .modal-img { max-width:100%; max-height:240px; border-radius:8px; margin:10px 0; }
         .modal-diary { background:#fdfcf7; border-left:3px solid var(--yellow); padding:10px 14px; margin:10px 0; font-size:0.9em; white-space:pre-wrap; border-radius:0 8px 8px 0; }
     </style>
@@ -165,8 +176,6 @@
                 
                 const myTeam = m.myTeam || 'A';
                 let myScore, oppScore;
-                
-                // 如果平局且有点球大战，胜负基于点球
                 if (m.penaltyShootout && (m.scoreA === m.scoreB)) {
                     if (myTeam === 'A') {
                         myScore = m.penaltyA || 0;
@@ -195,17 +204,16 @@
 
             let html = '';
             sorted.forEach(m => {
-                const goalsSorted = (m.goals || []).sort((a,b) => a.minute - b.minute);
-                const goalsHTML = goalsSorted.map(g => {
-                    const isPenalty = g.goalType === 'penalty';
-                    const iconClass = isPenalty ? 'goal-penalty' : 'goal-normal';
-                    const icon = isPenalty ? '🥅' : '⚽';
-                    const number = g.number ? g.number + '. ' : '';
-                    return `<span class="goal-dot"><span class="dot dot-${g.team}"></span><span class="goal-icon ${iconClass}">${icon}</span> ${number}${g.player} <strong>${g.minute}'</strong></span>`;
-                }).join('');
+                // 只显示李坤的进球时间（用于卡片概览）
+                const lkGoalsOnly = (m.goals || []).filter(g => g.player === '李坤').sort((a,b) => a.minute - b.minute);
+                const cardGoalsHTML = lkGoalsOnly.map(g => {
+                    const icon = g.goalType === 'penalty' ? '🥅' : '⚽';
+                    return `<span>${icon} ${g.minute}'</span>`;
+                }).join(' ');
+                
                 const imgHtml = m.imgUrl ? `<img src="${m.imgUrl}" class="match-img" alt="比赛照片" onerror="this.style.display='none'">` : '';
 
-                // 构建比分显示（含点球）
+                // 构建比分显示（含点球，居中）
                 let scoreHTML = '';
                 if (m.penaltyShootout && (m.scoreA === m.scoreB)) {
                     scoreHTML = `<span class="penalty-score">(${m.penaltyA||0})</span> ${m.scoreA} : ${m.scoreB} <span class="penalty-score">(${m.penaltyB||0})</span>`;
@@ -225,7 +233,7 @@
                         <span class="team-name team-right">✈️ ${m.teamB}</span>
                     </div>
                     ${imgHtml}
-                    ${goalsSorted.length ? `<div style="margin-top:8px;">${goalsHTML}</div>` : ''}
+                    ${lkGoalsOnly.length ? `<div class="card-goals">${cardGoalsHTML}</div>` : ''}
                     ${m.location ? `<div style="font-size:0.78em; color:#999; margin-top:6px;">📍 ${m.location}</div>` : ''}
                     <div style="text-align:right; margin-top:6px; font-size:0.75em; color:#aaa;">点击查看详情 ›</div>
                 </div>`;
@@ -237,18 +245,30 @@
             const match = globalMatches.find(m => m.key === key);
             if (!match) return;
             
-            const goalsSorted = (match.goals || []).sort((a,b) => a.minute - b.minute);
-            const goalsHTML = goalsSorted.length > 0 
-                ? `<div class="modal-goals"><strong>⚽ 进球记录：</strong><br>` + 
-                  goalsSorted.map(g => {
-                      const isPenalty = g.goalType === 'penalty';
-                      const iconClass = isPenalty ? 'goal-penalty' : 'goal-normal';
-                      const icon = isPenalty ? '🥅' : '⚽';
-                      const number = g.number ? g.number + '. ' : '';
-                      return `<span class="goal-dot"><span class="dot dot-${g.team}"></span><span class="goal-icon ${iconClass}">${icon}</span> ${number}${g.player} <strong>${g.minute}'</strong> <small>(${g.team==='A'?'主队':'客队'})</small></span>`;
-                  }).join('') + 
-                  `</div>` 
-                : '';
+            const goalsA = (match.goals || []).filter(g => g.team === 'A').sort((a,b) => a.minute - b.minute);
+            const goalsB = (match.goals || []).filter(g => g.team === 'B').sort((a,b) => a.minute - b.minute);
+            
+            const renderGoal = (g) => {
+                const isKun = g.player === '李坤';
+                const playerClass = isKun ? 'player-kun' : '';
+                const icon = g.goalType === 'penalty' ? '🥅' : '⚽';
+                const iconClass = g.goalType === 'penalty' ? 'goal-penalty' : 'goal-normal';
+                const number = g.number ? g.number + '. ' : '';
+                return `<span class="goal-dot"><span class="dot dot-${g.team}"></span><span class="goal-icon ${iconClass}">${icon}</span> <span class="${playerClass}">${number}${g.player}</span> <strong>${g.minute}'</strong></span>`;
+            };
+            
+            const goalsHTML = `
+                <div class="modal-goals">
+                    <div class="goal-group">
+                        <div class="group-title">🏠 主队进球</div>
+                        ${goalsA.length ? goalsA.map(renderGoal).join('') : '<span style="color:#aaa;">无</span>'}
+                    </div>
+                    <div class="goal-group">
+                        <div class="group-title">✈️ 客队进球</div>
+                        ${goalsB.length ? goalsB.map(renderGoal).join('') : '<span style="color:#aaa;">无</span>'}
+                    </div>
+                </div>`;
+            
             const imgHTML = match.imgUrl ? `<img src="${match.imgUrl}" class="modal-img" alt="比赛照片" onerror="this.style.display='none'">` : '';
             const diaryHTML = match.diary ? `<div class="modal-diary">📝 ${match.diary}</div>` : '';
 
