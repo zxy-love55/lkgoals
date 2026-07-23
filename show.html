@@ -45,9 +45,27 @@
             box-shadow:0 6px 18px rgba(0,0,0,0.1);
         }
         .match-date { font-size:0.8em; color:#777; background:#f9f9f9; padding:4px 12px; border-radius:14px; }
-        .teams-row { display:flex; align-items:center; justify-content:center; gap:12px; margin:10px 0; flex-wrap:wrap; }
-        .team-name { font-weight:700; font-size:1.1em; max-width:140px; word-break:break-word; }
-        .score-display { font-weight:900; font-size:2.6em; color: var(--black); letter-spacing:2px; }
+        .teams-row {
+            display: flex; align-items:center; justify-content:center; gap:8px; margin:10px 0;
+            flex-wrap: nowrap; /* 禁止换行 */
+        }
+        .team-name {
+            font-weight:700;
+            font-size: clamp(0.9rem, 3.5vw, 1.15rem);
+            max-width: 35%;
+            word-break: keep-all;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            text-align: center;
+        }
+        .score-display {
+            font-weight:900;
+            font-size: clamp(1.8rem, 9vw, 2.6rem);
+            color: var(--black);
+            letter-spacing: 2px;
+            white-space: nowrap;
+        }
         .goal-dot { display:inline-flex; align-items:center; gap:5px; background:#fafafa; padding:5px 10px; border-radius:16px; margin:3px 5px; font-size:0.82em; border:1px solid #eee; }
         .goal-icon { font-size:1.1em; }
         .goal-normal { color: var(--black); }
