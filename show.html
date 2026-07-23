@@ -29,7 +29,7 @@
         @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
         .hero h1 { font-size:1.8em; font-weight:800; position:relative; z-index:1; }
         .hero .sub { font-size:0.9em; opacity:0.9; position:relative; z-index:1; }
-        .container { max-width:700px; margin:0 auto; padding:8px 16px 40px; }
+        .container { max-width:700px; margin:0 auto; padding:8px 16px 20px; }
         .stats-bar { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:18px; }
         .stat-item {
             background: var(--white); border-radius:25px; padding:10px 18px;
@@ -56,12 +56,17 @@
         .team-name {
             font-weight:700;
             font-size: clamp(0.9rem, 3.5vw, 1.15rem);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .team-left { justify-content: flex-end; }
+        .team-right { justify-content: flex-start; }
+        .team-text {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
-        .team-left { text-align: right; }
-        .team-right { text-align: left; }
         .score-display {
             font-weight:900;
             font-size: clamp(1.8rem, 9vw, 2.6rem);
@@ -85,7 +90,6 @@
         .dot { width:10px; height:10px; border-radius:50%; }
         .dot-A { background: #d32f2f; } .dot-B { background: #1976d2; }
         .match-img { max-width:100%; max-height:200px; border-radius:10px; margin:8px 0; display:block; }
-        /* 李坤进球时间 - 加大并加粗 */
         .card-goals {
             font-size: 1em;
             font-weight: 600;
@@ -93,13 +97,12 @@
             margin-top: 6px;
         }
         .footer {
-            text-align:center; padding:30px 20px; color: #555; font-size:0.9em;
-            border-top:1px solid var(--border); margin-top:20px;
+            text-align:center; padding:20px 20px 25px; color: #555; font-size:0.9em;
+            border-top:1px solid var(--border); margin-top:10px;
             font-weight:500; letter-spacing:0.5px;
         }
         .footer span { color: var(--yellow-dark); font-weight:700; }
 
-        /* 详情弹窗 */
         .modal-overlay {
             position: fixed; top:0; left:0; width:100%; height:100%;
             background: rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center;
@@ -210,7 +213,6 @@
 
             let html = '';
             sorted.forEach(m => {
-                // 只显示李坤的进球时间
                 const lkGoalsOnly = (m.goals || []).filter(g => g.player === '李坤').sort((a,b) => a.minute - b.minute);
                 const cardGoalsHTML = lkGoalsOnly.map(g => {
                     const icon = g.goalType === 'penalty' ? '🥅' : '⚽';
@@ -219,7 +221,6 @@
                 
                 const imgHtml = m.imgUrl ? `<img src="${m.imgUrl}" class="match-img" alt="比赛照片" onerror="this.style.display='none'">` : '';
 
-                // 比分显示（含点球）
                 let scoreHTML = '';
                 if (m.penaltyShootout && (m.scoreA === m.scoreB)) {
                     scoreHTML = `<span class="penalty-score">(${m.penaltyA||0})</span> ${m.scoreA} : ${m.scoreB} <span class="penalty-score">(${m.penaltyB||0})</span>`;
@@ -234,9 +235,9 @@
                         ${m.notes ? `<span style="font-size:0.75em; background:#f5b700; color:#000; padding:3px 10px; border-radius:12px;">${m.notes}</span>` : ''}
                     </div>
                     <div class="teams-row">
-                        <span class="team-name team-left">${m.teamA} 🏠</span>
+                        <span class="team-name team-left"><span class="team-text">${m.teamA}</span> 🏠</span>
                         <span class="score-display">${scoreHTML}</span>
-                        <span class="team-name team-right">✈️ ${m.teamB}</span>
+                        <span class="team-name team-right">✈️ <span class="team-text">${m.teamB}</span></span>
                     </div>
                     ${imgHtml}
                     ${lkGoalsOnly.length ? `<div class="card-goals">${cardGoalsHTML}</div>` : ''}
