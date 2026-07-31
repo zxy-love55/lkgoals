@@ -99,76 +99,6 @@
             <button class="btn-add" onclick="addMatch()">＋ 添加比赛</button>
         </div>
         <div id="matchList">加载中…</div>
-        <!-- 编辑面板模板（隐藏），会被移动到卡片下方 -->
-        <div class="edit-panel" id="editPanelTemplate" style="display:none;">
-            <h3>✏️ 编辑比赛</h3>
-            <div class="form-row">
-                <div class="form-group"><label>📅 日期</label><input type="date" id="editDate"></div>
-                <div class="form-group" style="max-width:130px;"><label>⏰ 开球时间</label><input type="time" id="editTime"></div>
-                <div class="form-group"><label>📍 地点</label><input type="text" id="editLocation" placeholder="如：奥体中心"></div>
-                <div class="form-group"><label>📝 备注</label><input type="text" id="editNotes" placeholder="友谊赛/联赛"></div>
-            </div>
-            <div class="form-row">
-                <div class="form-group"><label>🏠 主队</label><input type="text" id="editTeamA" placeholder="主队名称"></div>
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <input type="number" id="editScoreA" class="score-input" value="0" min="0">
-                    <span style="font-size:1.5em; font-weight:900;">:</span>
-                    <input type="number" id="editScoreB" class="score-input" value="0" min="0">
-                </div>
-                <div class="form-group"><label>✈️ 客队</label><input type="text" id="editTeamB" placeholder="客队名称"></div>
-            </div>
-            <!-- 点球大战 (仅平局时显示) -->
-            <div id="penaltySection" class="penalty-section" style="display:none;">
-                <div class="checkbox-label">
-                    <input type="checkbox" id="editPenaltyShootout" onchange="togglePenaltyInputs()">
-                    <label for="editPenaltyShootout">🥅 点球大战</label>
-                </div>
-                <div id="penaltyInputs" style="display:none; margin-top:10px;">
-                    <div class="form-row">
-                        <div class="form-group" style="max-width:120px;">
-                            <label>主队点球</label>
-                            <input type="number" id="editPenaltyA" class="penalty-input" value="0" min="0">
-                        </div>
-                        <div class="form-group" style="max-width:120px;">
-                            <label>客队点球</label>
-                            <input type="number" id="editPenaltyB" class="penalty-input" value="0" min="0">
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>👤 我所在的队伍</label>
-                    <select id="editMyTeam">
-                        <option value="A">🏠 主队</option>
-                        <option value="B">✈️ 客队</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-group" style="margin-bottom:12px;">
-                <label>📝 比赛日记</label>
-                <textarea id="editDiary" rows="3" placeholder="记录本场比赛的精彩瞬间…"></textarea>
-            </div>
-            <div class="goals-section">
-                <h4>⚽ 进球记录</h4>
-                <div id="goalsList"></div>
-                <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; align-items:center;">
-                    <select id="newGoalTeam"><option value="A">主队</option><option value="B">客队</option></select>
-                    <input type="text" id="newGoalNumber" placeholder="号码" style="width:60px; text-align:center;">
-                    <input type="text" id="newGoalPlayer" placeholder="球员名" style="flex:1; min-width:90px;">
-                    <input type="number" id="newGoalMinute" value="1" min="1" style="width:60px; text-align:center;">
-                    <select id="newGoalType" style="width:90px;">
-                        <option value="normal">普通进球</option>
-                        <option value="penalty">点球</option>
-                    </select>
-                    <button class="btn-add" onclick="addGoal()">＋ 添加</button>
-                </div>
-            </div>
-            <div class="edit-actions">
-                <button class="btn btn-yellow" onclick="saveMatch()">💾 保存修改</button>
-                <button class="btn btn-outline" style="color:#c0392b; border-color:#e0d0d0;" onclick="cancelEdit()">取消</button>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -187,15 +117,79 @@
 
         let matchesArray = [];
         let editingKey = null;
-        let editPanel = null; // 当前显示的编辑面板实例
+        let editPanel = null;
 
-        // 获取编辑面板模板并克隆使用
-        function getEditPanelClone() {
-            const template = document.getElementById('editPanelTemplate');
-            const clone = template.cloneNode(true);
-            clone.id = 'activeEditPanel'; // 用于标识当前活动面板
-            clone.style.display = 'none';
-            return clone;
+        // 生成编辑面板HTML
+        function createEditPanelHTML() {
+            return `
+            <div class="edit-panel" id="editPanelActive">
+                <h3>✏️ 编辑比赛</h3>
+                <div class="form-row">
+                    <div class="form-group"><label>📅 日期</label><input type="date" id="editDate"></div>
+                    <div class="form-group" style="max-width:130px;"><label>⏰ 开球时间</label><input type="time" id="editTime"></div>
+                    <div class="form-group"><label>📍 地点</label><input type="text" id="editLocation" placeholder="如：奥体中心"></div>
+                    <div class="form-group"><label>📝 备注</label><input type="text" id="editNotes" placeholder="友谊赛/联赛"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>🏠 主队</label><input type="text" id="editTeamA" placeholder="主队名称"></div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <input type="number" id="editScoreA" class="score-input" value="0" min="0">
+                        <span style="font-size:1.5em; font-weight:900;">:</span>
+                        <input type="number" id="editScoreB" class="score-input" value="0" min="0">
+                    </div>
+                    <div class="form-group"><label>✈️ 客队</label><input type="text" id="editTeamB" placeholder="客队名称"></div>
+                </div>
+                <div id="penaltySection" class="penalty-section" style="display:none;">
+                    <div class="checkbox-label">
+                        <input type="checkbox" id="editPenaltyShootout" onchange="togglePenaltyInputs()">
+                        <label for="editPenaltyShootout">🥅 点球大战</label>
+                    </div>
+                    <div id="penaltyInputs" style="display:none; margin-top:10px;">
+                        <div class="form-row">
+                            <div class="form-group" style="max-width:120px;">
+                                <label>主队点球</label>
+                                <input type="number" id="editPenaltyA" class="penalty-input" value="0" min="0">
+                            </div>
+                            <div class="form-group" style="max-width:120px;">
+                                <label>客队点球</label>
+                                <input type="number" id="editPenaltyB" class="penalty-input" value="0" min="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>👤 我所在的队伍</label>
+                        <select id="editMyTeam">
+                            <option value="A">🏠 主队</option>
+                            <option value="B">✈️ 客队</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label>📝 比赛日记</label>
+                    <textarea id="editDiary" rows="3" placeholder="记录本场比赛的精彩瞬间…"></textarea>
+                </div>
+                <div class="goals-section">
+                    <h4>⚽ 进球记录</h4>
+                    <div id="goalsList"></div>
+                    <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; align-items:center;">
+                        <select id="newGoalTeam"><option value="A">主队</option><option value="B">客队</option></select>
+                        <input type="text" id="newGoalNumber" placeholder="号码" style="width:60px; text-align:center;">
+                        <input type="text" id="newGoalPlayer" placeholder="球员名" style="flex:1; min-width:90px;">
+                        <input type="number" id="newGoalMinute" value="1" min="1" style="width:60px; text-align:center;">
+                        <select id="newGoalType" style="width:90px;">
+                            <option value="normal">普通进球</option>
+                            <option value="penalty">点球</option>
+                        </select>
+                        <button class="btn-add" onclick="addGoal()">＋ 添加</button>
+                    </div>
+                </div>
+                <div class="edit-actions">
+                    <button class="btn btn-yellow" onclick="saveMatch()">💾 保存修改</button>
+                    <button class="btn btn-outline" style="color:#c0392b; border-color:#e0d0d0;" onclick="cancelEdit()">取消</button>
+                </div>
+            </div>`;
         }
 
         matchesRef.on('value', (snapshot) => {
@@ -220,19 +214,30 @@
             const container = document.getElementById('matchList');
             const sorted = [...matchesArray].sort((a,b) => new Date(b.date) - new Date(a.date));
             document.getElementById('matchCount').textContent = sorted.length + ' 场';
-            
+
+            // 保存当前编辑面板的key和面板元素
+            const activePanelKey = editingKey;
+            let activePanelElement = null;
+            if (editPanel) {
+                activePanelElement = editPanel;
+                editPanel = null; // 暂时清除引用，避免remove时误删
+                if (activePanelElement.parentNode) {
+                    activePanelElement.remove();
+                }
+            }
+
             if (sorted.length === 0) {
                 container.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px;">暂无比赛，点击上方添加</div>';
                 return;
             }
-            
+
             container.innerHTML = sorted.map(m => {
                 let scoreDisplay = `${m.scoreA || 0} : ${m.scoreB || 0}`;
                 if (m.penaltyShootout && (m.scoreA === m.scoreB)) {
                     scoreDisplay = `(${m.penaltyA||0}) ${m.scoreA||0} : ${m.scoreB||0} (${m.penaltyB||0})`;
                 }
                 return `
-                <div class="match-card ${m.key === editingKey ? 'active' : ''}" onclick="editMatch('${m.key}', this)" data-key="${m.key}">
+                <div class="match-card ${m.key === editingKey ? 'active' : ''}" data-key="${m.key}" onclick="editMatch('${m.key}', this)">
                     <button class="delete-match-btn" onclick="event.stopPropagation();deleteMatch('${m.key}')">🗑</button>
                     <div style="display:flex; justify-content:space-between;">
                         <span style="font-size:0.8em;color:#777;">
@@ -251,43 +256,47 @@
                     </div>
                 </div>`;
             }).join('');
+
+            // 如果之前有活动的编辑面板，重新插入到对应卡片后
+            if (activePanelKey && activePanelElement) {
+                const targetCard = container.querySelector(`.match-card[data-key="${activePanelKey}"]`);
+                if (targetCard) {
+                    targetCard.insertAdjacentElement('afterend', activePanelElement);
+                    activePanelElement.style.display = 'block';
+                    editPanel = activePanelElement;
+                }
+            }
         }
 
         function editMatch(key, cardElement) {
             const m = matchesArray.find(x => x.key === key);
             if (!m) return;
-            
-            // 如果已经有活动的编辑面板，先移除
+
+            // 移除旧面板
             if (editPanel) {
                 editPanel.remove();
                 editPanel = null;
             }
-            
+
             editingKey = key;
-            
-            // 克隆新面板并插入到卡片后面
-            const panel = getEditPanelClone();
+
+            // 创建新面板HTML并插入
+            const panelHTML = createEditPanelHTML();
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = panelHTML;
+            const panel = tempDiv.firstElementChild;
             cardElement.insertAdjacentElement('afterend', panel);
             panel.style.display = 'block';
             editPanel = panel;
-            
-            // 填充表单
-            bindFormEvents(panel);
-            fillFormData(panel, m);
-            
-            renderMatchList(); // 刷新高亮状态
-            // 平滑滚动到编辑面板
-            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
 
-        function bindFormEvents(panel) {
-            // 绑定比分输入监听，控制点球区域
-            const scoreAInput = panel.querySelector('#editScoreA');
-            const scoreBInput = panel.querySelector('#editScoreB');
-            if (scoreAInput && scoreBInput) {
-                scoreAInput.addEventListener('input', () => checkPenaltyVisibility(panel));
-                scoreBInput.addEventListener('input', () => checkPenaltyVisibility(panel));
-            }
+            // 填充数据
+            fillFormData(panel, m);
+
+            // 刷新卡片高亮
+            document.querySelectorAll('.match-card').forEach(c => c.classList.remove('active'));
+            cardElement.classList.add('active');
+
+            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         function fillFormData(panel, m) {
@@ -301,8 +310,7 @@
             panel.querySelector('#editScoreB').value = m.scoreB || 0;
             panel.querySelector('#editMyTeam').value = m.myTeam || 'A';
             panel.querySelector('#editDiary').value = m.diary || '';
-            
-            // 点球相关
+
             const isDraw = (parseInt(m.scoreA)||0) === (parseInt(m.scoreB)||0);
             const penaltySection = panel.querySelector('#penaltySection');
             penaltySection.style.display = isDraw ? 'block' : 'none';
@@ -310,11 +318,13 @@
             penaltyCheckbox.checked = m.penaltyShootout || false;
             panel.querySelector('#editPenaltyA').value = m.penaltyA || 0;
             panel.querySelector('#editPenaltyB').value = m.penaltyB || 0;
-            const penaltyInputs = panel.querySelector('#penaltyInputs');
-            penaltyInputs.style.display = m.penaltyShootout ? 'block' : 'none';
-            
-            // 渲染进球
+            panel.querySelector('#penaltyInputs').style.display = m.penaltyShootout ? 'block' : 'none';
+
             renderGoals(panel, m);
+        }
+
+        function getActivePanel() {
+            return editPanel;
         }
 
         function togglePenaltyInputs() {
@@ -325,44 +335,28 @@
             penaltyInputs.style.display = checkbox.checked ? 'block' : 'none';
         }
 
-        function checkPenaltyVisibility(panel) {
-            const scoreA = parseInt(panel.querySelector('#editScoreA').value) || 0;
-            const scoreB = parseInt(panel.querySelector('#editScoreB').value) || 0;
-            const section = panel.querySelector('#penaltySection');
-            if (scoreA === scoreB) {
-                section.style.display = 'block';
-            } else {
-                section.style.display = 'none';
-                panel.querySelector('#editPenaltyShootout').checked = false;
-                panel.querySelector('#penaltyInputs').style.display = 'none';
-            }
-        }
-
-        function getActivePanel() {
-            return document.getElementById('activeEditPanel') || editPanel;
-        }
-
         function cancelEdit() {
             if (editPanel) {
                 editPanel.remove();
                 editPanel = null;
             }
             editingKey = null;
-            renderMatchList();
+            // 移除所有卡片active类
+            document.querySelectorAll('.match-card').forEach(c => c.classList.remove('active'));
         }
 
         function saveMatch() {
             if (!editingKey) return;
             const panel = getActivePanel();
             if (!panel) return;
-            
+
             const scoreA = parseInt(panel.querySelector('#editScoreA').value) || 0;
             const scoreB = parseInt(panel.querySelector('#editScoreB').value) || 0;
             const isDraw = scoreA === scoreB;
             const penaltyShootout = isDraw ? panel.querySelector('#editPenaltyShootout').checked : false;
             const penaltyA = penaltyShootout ? (parseInt(panel.querySelector('#editPenaltyA').value) || 0) : 0;
             const penaltyB = penaltyShootout ? (parseInt(panel.querySelector('#editPenaltyB').value) || 0) : 0;
-            
+
             const matchData = {
                 date: panel.querySelector('#editDate').value,
                 time: panel.querySelector('#editTime').value,
@@ -379,7 +373,7 @@
                 diary: panel.querySelector('#editDiary').value.trim(),
                 goals: getEditingMatch()?.goals || []
             };
-            
+
             matchesRef.child(editingKey).update(matchData)
                 .then(() => showToast('✅ 已保存并同步'))
                 .catch(err => showToast('❌ 保存失败: ' + err.message));
@@ -405,7 +399,6 @@
             const newRef = matchesRef.push(newMatch);
             newRef.then(() => {
                 const newKey = newRef.key;
-                // 等待数据列表更新后，找到对应卡片并触发编辑
                 const checkExist = setInterval(() => {
                     const card = document.querySelector(`.match-card[data-key="${newKey}"]`);
                     if (card) {
@@ -435,19 +428,19 @@
             container.innerHTML = match.goals.map((g, i) => `
                 <div class="goal-item">
                     <span class="goal-team-badge goal-team-${g.team}">${g.team === 'A' ? '主' : '客'}</span>
-                    <input class="goal-number" value="${g.number || ''}" placeholder="号码" onchange="updateGoal(${i}, 'number', this.value, event)">
-                    <input class="goal-player" value="${g.player}" onchange="updateGoal(${i}, 'player', this.value, event)">
-                    <input class="goal-minute" value="${g.minute}" type="number" min="1" onchange="updateGoal(${i}, 'minute', this.value, event)">
-                    <select class="goal-type" onchange="updateGoal(${i}, 'goalType', this.value, event)">
+                    <input class="goal-number" value="${g.number || ''}" placeholder="号码" onchange="updateGoal(${i}, 'number', this.value)">
+                    <input class="goal-player" value="${g.player}" onchange="updateGoal(${i}, 'player', this.value)">
+                    <input class="goal-minute" value="${g.minute}" type="number" min="1" onchange="updateGoal(${i}, 'minute', this.value)">
+                    <select class="goal-type" onchange="updateGoal(${i}, 'goalType', this.value)">
                         <option value="normal" ${g.goalType !== 'penalty' ? 'selected' : ''}>普通</option>
                         <option value="penalty" ${g.goalType === 'penalty' ? 'selected' : ''}>点球</option>
                     </select>
-                    <button class="btn-danger" onclick="removeGoal(${i}, event)">✕</button>
+                    <button class="btn-danger" onclick="removeGoal(${i})">✕</button>
                 </div>
             `).join('');
         }
 
-        function updateGoal(index, field, value, event) {
+        function updateGoal(index, field, value) {
             if (!editingKey) return;
             const match = getEditingMatch();
             if (!match || !match.goals) return;
@@ -459,7 +452,7 @@
                 .catch(err => showToast('❌ 更新失败: ' + err.message));
         }
 
-        function removeGoal(index, event) {
+        function removeGoal(index) {
             if (!editingKey) return;
             const match = getEditingMatch();
             if (!match || !match.goals) return;
@@ -479,7 +472,7 @@
             }
             const panel = getActivePanel();
             if (!panel) return;
-            
+
             const number = panel.querySelector('#newGoalNumber').value.trim();
             const player = panel.querySelector('#newGoalPlayer').value.trim();
             if (!player) { showToast('请输入球员名'); return; }
@@ -511,6 +504,24 @@
             t.classList.add('show');
             setTimeout(() => t.classList.remove('show'), 2500);
         }
+
+        // 监听比分变化显示/隐藏点球区域
+        document.addEventListener('input', function(e) {
+            if (e.target.id === 'editScoreA' || e.target.id === 'editScoreB') {
+                const panel = e.target.closest('.edit-panel');
+                if (!panel || panel.id !== 'editPanelActive') return;
+                const scoreA = parseInt(panel.querySelector('#editScoreA').value) || 0;
+                const scoreB = parseInt(panel.querySelector('#editScoreB').value) || 0;
+                const penaltySection = panel.querySelector('#penaltySection');
+                if (scoreA === scoreB) {
+                    penaltySection.style.display = 'block';
+                } else {
+                    penaltySection.style.display = 'none';
+                    panel.querySelector('#editPenaltyShootout').checked = false;
+                    panel.querySelector('#penaltyInputs').style.display = 'none';
+                }
+            }
+        });
     </script>
 </body>
 </html>
