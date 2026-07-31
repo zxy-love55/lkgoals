@@ -83,7 +83,53 @@
         .toast.show { opacity:1; }
         .checkbox-label { display:flex; align-items:center; gap:8px; cursor:pointer; }
 
-        /* ===== 美化添加进球区域 ===== */
+        /* 照片上传区域 */
+        .photo-upload-area {
+            margin-top: 8px;
+        }
+        .photo-upload-area .preview-container {
+            margin-top: 10px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .photo-upload-area img {
+            max-width: 200px;
+            max-height: 150px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            object-fit: cover;
+        }
+        .photo-upload-area .remove-photo-btn {
+            background: #d32f2f;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            font-size: 0.8em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .add-photo-btn {
+            background: #f0f0f0;
+            border: 1px dashed #aaa;
+            border-radius: 8px;
+            padding: 6px 14px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .add-photo-btn:hover {
+            background: #e8e8e8;
+        }
+
+        /* 美化添加进球区域 */
         .add-goal-area {
             background: #f9f9f9;
             border-radius: 12px;
@@ -167,7 +213,7 @@
         let editingKey = null;
         let editPanel = null;
 
-        // 生成编辑面板HTML
+        // 生成编辑面板HTML（包含照片上传区域）
         function createEditPanelHTML() {
             return `
             <div class="edit-panel" id="editPanelActive">
@@ -218,6 +264,13 @@
                     <label>📝 比赛日记</label>
                     <textarea id="editDiary" rows="3" placeholder="记录本场比赛的精彩瞬间…"></textarea>
                 </div>
+                <!-- 照片上传区域 -->
+                <div class="photo-upload-area">
+                    <label style="font-size:0.8em; font-weight:700; color:#555; display:block; margin-bottom:4px;">📷 比赛照片</label>
+                    <div id="photoPreview" class="preview-container" style="display:none;"></div>
+                    <button type="button" class="add-photo-btn" onclick="triggerPhotoUpload()">📷 添加照片</button>
+                    <input type="file" id="photoFileInput" accept="image/*" style="display:none;" onchange="handlePhotoSelect(event)">
+                </div>
                 <div class="goals-section">
                     <h4>⚽ 进球记录</h4>
                     <div id="goalsList"></div>
@@ -241,6 +294,61 @@
                     <button class="btn btn-outline" style="color:#c0392b; border-color:#e0d0d0;" onclick="cancelEdit()">取消</button>
                 </div>
             </div>`;
+        }
+
+        // 触发文件选择
+        function triggerPhotoUpload() {
+            const panel = getActivePanel();
+            if (!panel) return;
+            const fileInput = panel.querySelector('#photoFileInput');
+            if (fileInput) fileInput.click();
+        }
+
+        // 处理照片选择
+        function handlePhotoSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (file.size > 5 * 1024 * 1024) {
+                showToast('图片不能超过5MB');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const dataUrl = e.target.result;
+                // 存储到当前面板的数据属性中
+                const panel = getActivePanel();
+                if (!panel) return;
+                panel.dataset.photoDataUrl = dataUrl;
+                // 显示预览
+                showPhotoPreview(panel, dataUrl);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 显示照片预览
+        function showPhotoPreview(panel, dataUrl) {
+            const previewContainer = panel.querySelector('#photoPreview');
+            if (!previewContainer) return;
+            previewContainer.style.display = 'flex';
+            previewContainer.innerHTML = `
+                <img src="${dataUrl}" alt="比赛照片">
+                <button class="remove-photo-btn" onclick="removePhoto()">✕</button>
+            `;
+        }
+
+        // 移除照片
+        function removePhoto() {
+            const panel = getActivePanel();
+            if (!panel) return;
+            panel.dataset.photoDataUrl = '';
+            const previewContainer = panel.querySelector('#photoPreview');
+            if (previewContainer) {
+                previewContainer.style.display = 'none';
+                previewContainer.innerHTML = '';
+            }
+            // 清空文件选择器
+            const fileInput = panel.querySelector('#photoFileInput');
+            if (fileInput) fileInput.value = '';
         }
 
         matchesRef.on('value', (snapshot) => {
@@ -365,6 +473,18 @@
             panel.querySelector('#editPenaltyB').value = m.penaltyB || 0;
             panel.querySelector('#penaltyInputs').style.display = m.penaltyShootout ? 'block' : 'none';
 
+            // 处理照片
+            panel.dataset.photoDataUrl = m.imgUrl || '';
+            if (m.imgUrl) {
+                showPhotoPreview(panel, m.imgUrl);
+            } else {
+                const previewContainer = panel.querySelector('#photoPreview');
+                if (previewContainer) {
+                    previewContainer.style.display = 'none';
+                    previewContainer.innerHTML = '';
+                }
+            }
+
             renderGoals(panel, m);
         }
 
@@ -415,6 +535,7 @@
                 penaltyB: penaltyB,
                 myTeam: panel.querySelector('#editMyTeam').value,
                 diary: panel.querySelector('#editDiary').value.trim(),
+                imgUrl: panel.dataset.photoDataUrl || '',  // 保存图片Data URL
                 goals: getEditingMatch()?.goals || []
             };
 
@@ -438,6 +559,7 @@
                 location: '',
                 notes: '',
                 diary: '',
+                imgUrl: '',
                 goals: []
             };
             const newRef = matchesRef.push(newMatch);
