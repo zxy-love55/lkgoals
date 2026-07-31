@@ -34,8 +34,9 @@
         .stat-item {
             background: var(--white); border-radius:25px; padding:10px 18px;
             box-shadow:0 2px 8px rgba(0,0,0,0.05); font-weight:700; font-size:0.85em;
-            border:1px solid var(--yellow);
+            border:1px solid var(--yellow); cursor: pointer; transition: all 0.2s;
         }
+        .stat-item.active { background: var(--yellow); color: var(--black); }
         .match-card {
             background: var(--white); border-radius: var(--radius); padding:20px 18px; margin-bottom:16px;
             box-shadow:0 2px 12px rgba(0,0,0,0.06); border:1px solid var(--border); border-left:6px solid var(--yellow);
@@ -59,7 +60,7 @@
             display: flex;
             align-items: center;
             gap: 4px;
-            min-width: 0;   /* 允许收缩 */
+            min-width: 0;
             max-width: 100%;
         }
         .team-left { justify-content: flex-end; }
@@ -180,6 +181,7 @@
         const database = firebase.database();
 
         let globalMatches = [];
+        let currentFilter = 'all'; // 'all', 'win', 'draw', 'loss'
 
         function loadAndRender(matchesObj) {
             const matches = [];
@@ -211,21 +213,36 @@
                     oppScore = myTeam === 'A' ? (m.scoreB || 0) : (m.scoreA || 0);
                 }
                 
-                if (myScore > oppScore) wins++;
-                else if (myScore === oppScore) draws++;
-                else losses++;
+                // 计算每场结果，存储到 m.result
+                if (myScore > oppScore) {
+                    m.result = 'win';
+                    wins++;
+                } else if (myScore === oppScore) {
+                    m.result = 'draw';
+                    draws++;
+                } else {
+                    m.result = 'loss';
+                    losses++;
+                }
             });
             
+            // 更新统计栏，添加点击事件
             document.getElementById('statsBar').innerHTML = `
-                <div class="stat-item">📅 ${total} 场</div>
-                <div class="stat-item">🏆 ${wins} 胜</div>
-                <div class="stat-item">🤝 ${draws} 平</div>
-                <div class="stat-item">💪 ${losses} 负</div>
+                <div class="stat-item ${currentFilter === 'all' ? 'active' : ''}" onclick="setFilter('all')">📅 ${total} 场</div>
+                <div class="stat-item ${currentFilter === 'win' ? 'active' : ''}" onclick="setFilter('win')">🏆 ${wins} 胜</div>
+                <div class="stat-item ${currentFilter === 'draw' ? 'active' : ''}" onclick="setFilter('draw')">🤝 ${draws} 平</div>
+                <div class="stat-item ${currentFilter === 'loss' ? 'active' : ''}" onclick="setFilter('loss')">💪 ${losses} 负</div>
                 <div class="stat-item">⚽ ${goals} 球</div>
             `;
 
+            // 根据当前筛选过滤
+            let filtered = sorted;
+            if (currentFilter !== 'all') {
+                filtered = sorted.filter(m => m.result === currentFilter);
+            }
+
             let html = '';
-            sorted.forEach(m => {
+            filtered.forEach(m => {
                 const lkGoalsOnly = (m.goals || []).filter(g => g.player === '李坤').sort((a,b) => a.minute - b.minute);
                 const cardGoalsHTML = lkGoalsOnly.map(g => {
                     const icon = g.goalType === 'penalty' ? '🥅' : '⚽';
@@ -258,8 +275,19 @@
                     <div style="text-align:right; margin-top:6px; font-size:0.75em; color:#aaa;">点击查看详情 ›</div>
                 </div>`;
             });
-            document.getElementById('matchesContainer').innerHTML = html || '<div style="text-align:center;color:#aaa;padding:40px;">暂无比赛记录</div>';
+            document.getElementById('matchesContainer').innerHTML = html || '<div style="text-align:center;color:#aaa;padding:40px;">暂无符合条件的比赛</div>';
         }
+
+        // 设置筛选
+        function setFilter(filter) {
+            currentFilter = filter;
+            // 重新渲染统计栏和列表（监听不会触发，手动调用loadAndRender）
+            const matchesObj = {};
+            globalMatches.forEach(m => { matchesObj[m.key] = m; });
+            loadAndRender(matchesObj);
+        }
+        // 暴露到全局
+        window.setFilter = setFilter;
 
         function showDetail(key) {
             const match = globalMatches.find(m => m.key === key);
