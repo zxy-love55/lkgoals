@@ -14,7 +14,7 @@
             --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
             --green: #2d8a4e;
             --gold: #f5b700;
-            --highlight-bg: #e8e8e8; /* 浅灰高亮 */
+            --highlight-bg: #e8e8e8;
         }
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family: var(--font); background: var(--gray); color: var(--text); min-height:100vh; }
@@ -37,19 +37,13 @@
             box-shadow:0 2px 8px rgba(0,0,0,0.05); font-weight:700; font-size:0.85em;
             border:1px solid var(--border); cursor: pointer; transition: all 0.2s;
         }
-        .stat-item.active {
-            background: var(--highlight-bg);
-            border-color: #ccc;
-        }
+        .stat-item.active { background: var(--highlight-bg); border-color: #ccc; }
         .match-card {
             background: var(--white); border-radius: var(--radius); padding:20px 18px; margin-bottom:16px;
             box-shadow:0 2px 12px rgba(0,0,0,0.06); border:1px solid var(--border); border-left:6px solid var(--yellow);
             cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
         }
-        .match-card:hover {
-            transform: translateY(-2px);
-            box-shadow:0 6px 18px rgba(0,0,0,0.1);
-        }
+        .match-card:hover { transform: translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,0.1); }
         .match-date { font-size:0.8em; color:#777; background:#f9f9f9; padding:4px 12px; border-radius:14px; }
         .teams-row {
             display: grid;
@@ -69,12 +63,7 @@
         }
         .team-left { justify-content: flex-end; }
         .team-right { justify-content: flex-start; }
-        .team-text {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            max-width: 100%;
-        }
+        .team-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
         .score-display {
             font-weight:900;
             font-size: clamp(1.8rem, 9vw, 2.6rem);
@@ -86,11 +75,7 @@
             align-items: center;
             justify-content: center;
         }
-        .penalty-score {
-            font-size: 0.6em;
-            font-weight: 700;
-            margin: 0 2px;
-        }
+        .penalty-score { font-size: 0.6em; font-weight: 700; margin: 0 2px; }
         .goal-dot { display:inline-flex; align-items:center; gap:5px; background:#fafafa; padding:5px 10px; border-radius:16px; margin:3px 5px; font-size:0.82em; border:1px solid #eee; }
         .goal-icon { font-size:1.1em; }
         .goal-normal { color: var(--black); }
@@ -98,21 +83,10 @@
         .dot { width:10px; height:10px; border-radius:50%; }
         .dot-A { background: #d32f2f; } .dot-B { background: #1976d2; }
         .match-img { max-width:100%; max-height:200px; border-radius:10px; margin:8px 0; display:block; }
-        .card-goals {
-            font-size: 1em;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-top: 6px;
-        }
+        .card-goals { font-size: 1em; font-weight: 600; color: #1a1a1a; margin-top: 6px; }
         .badge {
-            font-size:0.75em;
-            background:#f5b700;
-            color:#000;
-            padding:3px 10px;
-            border-radius:12px;
-            display: inline-flex;
-            align-items: center;
-            line-height: 1.2;
+            font-size:0.75em; background:#f5b700; color:#000; padding:3px 10px;
+            border-radius:12px; display: inline-flex; align-items: center; line-height: 1.2;
         }
         .footer {
             text-align:center; padding:12px 20px 40px; color: #555; font-size:0.9em;
@@ -121,6 +95,7 @@
         }
         .footer span { color: var(--yellow-dark); font-weight:700; }
 
+        /* 详情弹窗 */
         .modal-overlay {
             position: fixed; top:0; left:0; width:100%; height:100%;
             background: rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center;
@@ -146,8 +121,21 @@
         .modal-goals .group-title { font-weight:700; font-size:0.9em; margin-bottom:6px; }
         .modal-goals .goal-dot { margin:2px 4px; }
         .player-kun { color: #c79100; font-weight:800; }
-        .modal-img { max-width:100%; max-height:240px; border-radius:8px; margin:10px 0; }
+        .modal-img { max-width:100%; max-height:240px; border-radius:8px; margin:10px 0; cursor: pointer; }
         .modal-diary { background:#fdfcf7; border-left:3px solid var(--yellow); padding:10px 14px; margin:10px 0; font-size:0.9em; white-space:pre-wrap; border-radius:0 8px 8px 0; }
+
+        /* 照片放大层 */
+        .image-lightbox {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.9); display:flex; align-items:center; justify-content:center;
+            z-index:2000; visibility:hidden; opacity:0; transition:0.3s;
+        }
+        .image-lightbox.active { visibility:visible; opacity:1; }
+        .image-lightbox img { max-width:95%; max-height:95%; border-radius:10px; }
+        .image-lightbox .close-lightbox {
+            position: absolute; top:20px; right:20px; color:#fff; font-size:2em;
+            cursor:pointer; background:none; border:none;
+        }
     </style>
 </head>
 <body>
@@ -164,11 +152,18 @@
         <span>来自爱你的zxy</span> · 你的每一粒进球我都会记得
     </div>
 
+    <!-- 详情弹窗 -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal-content" id="modalContent">
             <button class="modal-close" onclick="closeModal()">✕</button>
             <div id="modalBody"></div>
         </div>
+    </div>
+
+    <!-- 照片放大层 -->
+    <div class="image-lightbox" id="imageLightbox">
+        <button class="close-lightbox" onclick="closeLightbox()">✕</button>
+        <img id="lightboxImage" src="" alt="放大照片">
     </div>
 
     <script>
@@ -185,7 +180,7 @@
         const database = firebase.database();
 
         let globalMatches = [];
-        let currentFilter = 'all'; // 'all', 'win', 'draw', 'loss', 'goal'
+        let currentFilter = 'all';
 
         function loadAndRender(matchesObj) {
             const matches = [];
@@ -227,11 +222,9 @@
                     m.result = 'loss';
                     losses++;
                 }
-                // 标记是否有李坤进球
                 m.hasLkGoal = lkGoals.length > 0;
             });
             
-            // 渲染统计栏
             document.getElementById('statsBar').innerHTML = `
                 <div class="stat-item ${currentFilter === 'all' ? '' : ''}" onclick="setFilter('all')">📅 ${total} 场</div>
                 <div class="stat-item ${currentFilter === 'win' ? 'active' : ''}" onclick="setFilter('win')">🏆 ${wins} 胜</div>
@@ -240,7 +233,6 @@
                 <div class="stat-item ${currentFilter === 'goal' ? 'active' : ''}" onclick="setFilter('goal')">⚽ ${goals} 球</div>
             `;
 
-            // 根据筛选过滤
             let filtered = sorted;
             if (currentFilter === 'win') {
                 filtered = sorted.filter(m => m.result === 'win');
@@ -260,8 +252,6 @@
                     return `<span>${icon} ${g.minute}'</span>`;
                 }).join(' ');
                 
-                const imgHtml = m.imgUrl ? `<img src="${m.imgUrl}" class="match-img" alt="比赛照片" onerror="this.style.display='none'">` : '';
-
                 let scoreHTML = '';
                 if (m.penaltyShootout && (m.scoreA === m.scoreB)) {
                     scoreHTML = `<span class="penalty-score">(${m.penaltyA||0})</span> ${m.scoreA} : ${m.scoreB} <span class="penalty-score">(${m.penaltyB||0})</span>`;
@@ -280,7 +270,6 @@
                         <span class="score-display">${scoreHTML}</span>
                         <span class="team-name team-right">✈️ <span class="team-text">${m.teamB}</span></span>
                     </div>
-                    ${imgHtml}
                     ${lkGoalsOnly.length ? `<div class="card-goals">${cardGoalsHTML}</div>` : ''}
                     ${m.location ? `<div style="font-size:0.78em; color:#999; margin-top:6px;">📍 ${m.location}</div>` : ''}
                     <div style="text-align:right; margin-top:6px; font-size:0.75em; color:#aaa;">点击查看详情 ›</div>
@@ -289,7 +278,6 @@
             document.getElementById('matchesContainer').innerHTML = html || '<div style="text-align:center;color:#aaa;padding:40px;">暂无符合条件的比赛</div>';
         }
 
-        // 设置筛选
         function setFilter(filter) {
             currentFilter = filter;
             const matchesObj = {};
@@ -326,7 +314,7 @@
                     </div>
                 </div>`;
             
-            const imgHTML = match.imgUrl ? `<img src="${match.imgUrl}" class="modal-img" alt="比赛照片" onerror="this.style.display='none'">` : '';
+            const imgHTML = match.imgUrl ? `<img src="${match.imgUrl}" class="modal-img" alt="比赛照片" onclick="event.stopPropagation(); openLightbox('${match.imgUrl}')" onerror="this.style.display='none'">` : '';
             const diaryHTML = match.diary ? `<div class="modal-diary">📝 ${match.diary}</div>` : '';
 
             let scoreDetail = `${match.scoreA} : ${match.scoreB}`;
@@ -345,8 +333,8 @@
                 <div class="detail-row"><span class="detail-label">⚽ 比分：</span><span class="detail-value" style="font-weight:900; font-size:1.2em;">${scoreDetail}</span></div>
                 ${match.penaltyShootout && (match.scoreA === match.scoreB) ? `<div class="detail-row"><span class="detail-label">🥅 点球：</span><span class="detail-value">主队 ${match.penaltyA||0} - ${match.penaltyB||0} 客队</span></div>` : ''}
                 ${match.myTeam ? `<div class="detail-row"><span class="detail-label">👤 我的队伍：</span><span class="detail-value">${match.myTeam==='A'?'主队':'客队'}</span></div>` : ''}
-                ${imgHTML}
                 ${diaryHTML}
+                ${imgHTML}
                 ${goalsHTML}
             `;
             document.getElementById('modalBody').innerHTML = content;
@@ -358,6 +346,18 @@
         }
         document.getElementById('modalOverlay').addEventListener('click', function(e) {
             if (e.target === this) closeModal();
+        });
+
+        // 照片放大功能
+        function openLightbox(src) {
+            document.getElementById('lightboxImage').src = src;
+            document.getElementById('imageLightbox').classList.add('active');
+        }
+        function closeLightbox() {
+            document.getElementById('imageLightbox').classList.remove('active');
+        }
+        document.getElementById('imageLightbox').addEventListener('click', function(e) {
+            if (e.target === this) closeLightbox();
         });
 
         database.ref('matches').on('value', (snapshot) => {
